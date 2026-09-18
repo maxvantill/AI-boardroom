@@ -1,10 +1,319 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>AI Boardroom</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Boardroom</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #0b1020;
+  color: #f5f7fb;
+  min-height: 100vh;
+}
+
+.header {
+  border-bottom: 1px solid #252d42;
+  padding: 20px 40px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #0f1629;
+}
+
+.logo {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.logo span {
+  color: #4ade80;
+}
+
+.status {
+  color: #4ade80;
+  font-size: 14px;
+}
+
+.container {
+  max-width: 1400px;
+  margin: auto;
+  padding: 40px 25px;
+}
+
+.hero {
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.hero h1 {
+  font-size: 42px;
+  margin-bottom: 12px;
+}
+
+.hero p {
+  color: #9ca8bd;
+  font-size: 17px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin-bottom: 35px;
+}
+
+.agent {
+  background: #11192c;
+  border: 1px solid #29334c;
+  border-radius: 14px;
+  padding: 22px;
+  min-height: 170px;
+}
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: #1b2740;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.agent h3 {
+  font-size: 17px;
+}
+
+.role {
+  color: #8d9ab2;
+  font-size: 13px;
+  margin-top: 3px;
+}
+
+.agent p {
+  color: #aeb8ca;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.input-box {
+  background: #11192c;
+  border: 1px solid #29334c;
+  border-radius: 16px;
+  padding: 25px;
+}
+
+.input-box h2 {
+  margin-bottom: 8px;
+}
+
+.input-box p {
+  color: #8d9ab2;
+  margin-bottom: 18px;
+}
+
+textarea {
+  width: 100%;
+  min-height: 130px;
+  resize: vertical;
+  border: 1px solid #303b55;
+  background: #0b1020;
+  color: white;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 15px;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: #4ade80;
+}
+
+button {
+  margin-top: 15px;
+  background: #4ade80;
+  color: #07120c;
+  border: none;
+  padding: 13px 22px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+#result {
+  display: none;
+  margin-top: 25px;
+  padding: 22px;
+  border-radius: 12px;
+  background: #0b1020;
+  border: 1px solid #29334c;
+  color: #cbd5e1;
+  line-height: 1.6;
+}
+
+@media (max-width: 900px) {
+  .board {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .header {
+    padding: 18px 20px;
+  }
+
+  .container {
+    padding: 30px 15px;
+  }
+
+  .hero h1 {
+    font-size: 32px;
+  }
+
+  .board {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
 </head>
+
 <body>
-  <h1>AI Boardroom</h1>
-  <p>Your multi-AI business strategy room.</p>
+
+<header class="header">
+  <div class="logo">AI <span>Boardroom</span></div>
+  <div class="status">● Boardroom Online</div>
+</header>
+
+<main class="container">
+
+  <section class="hero">
+    <h1>Your AI Executive Team</h1>
+    <p>Multiple AI agents. Different perspectives. One business strategy.</p>
+  </section>
+
+  <section class="board">
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">♟</div>
+        <div>
+          <h3>CEO / Strategist</h3>
+          <div class="role">Business Strategy</div>
+        </div>
+      </div>
+      <p>Builds the business strategy, identifies opportunities, and creates the overall plan.</p>
+    </div>
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">⌕</div>
+        <div>
+          <h3>Market Researcher</h3>
+          <div class="role">Market Intelligence</div>
+        </div>
+      </div>
+      <p>Investigates markets, competitors, customers, trends, and supporting evidence.</p>
+    </div>
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">⚔</div>
+        <div>
+          <h3>Devil's Advocate</h3>
+          <div class="role">Red Team</div>
+        </div>
+      </div>
+      <p>Attempts to destroy weak assumptions and finds reasons the business could fail.</p>
+    </div>
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">$</div>
+        <div>
+          <h3>CFO</h3>
+          <div class="role">Financial Analysis</div>
+        </div>
+      </div>
+      <p>Tests pricing, margins, customer acquisition costs, revenue, and scalability.</p>
+    </div>
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">⚙</div>
+        <div>
+          <h3>CTO</h3>
+          <div class="role">Technology</div>
+        </div>
+      </div>
+      <p>Evaluates technical feasibility, AI architecture, development requirements, and costs.</p>
+    </div>
+
+    <div class="agent">
+      <div class="agent-header">
+        <div class="icon">◆</div>
+        <div>
+          <h3>Chairman</h3>
+          <div class="role">Final Synthesis</div>
+        </div>
+      </div>
+      <p>Combines the debate, identifies disagreements, and produces the next action plan.</p>
+    </div>
+
+  </section>
+
+  <section class="input-box">
+    <h2>Bring an idea to the Boardroom</h2>
+    <p>Give the board a business idea, problem, or opportunity to investigate.</p>
+
+    <textarea id="idea" placeholder="Example: Find a business opportunity that could become a large online company..."></textarea>
+
+    <button onclick="startBoardroom()">Start Boardroom Debate</button>
+
+    <div id="result"></div>
+  </section>
+
+</main>
+
+<script>
+function startBoardroom() {
+  const idea = document.getElementById("idea").value.trim();
+  const result = document.getElementById("result");
+
+  if (!idea) {
+    result.style.display = "block";
+    result.innerHTML = "Enter a business idea first.";
+    return;
+  }
+
+  result.style.display = "block";
+  result.innerHTML =
+    "<strong>Boardroom session created.</strong><br><br>" +
+    "The agents are ready to analyze:<br><br>" +
+    "<em>" + idea.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</em><br><br>" +
+    "AI connections will be added next.";
+}
+</script>
+
 </body>
 </html>
