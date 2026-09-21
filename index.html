@@ -296,22 +296,41 @@ button:hover {
 </main>
 
 <script>
-function startBoardroom() {
-  const idea = document.getElementById("idea").value.trim();
-  const result = document.getElementById("result");
+async function startBoardroom() {
+  const ideaInput = document.querySelector("textarea");
+  const idea = ideaInput ? ideaInput.value.trim() : "";
 
   if (!idea) {
-    result.style.display = "block";
-    result.innerHTML = "Enter a business idea first.";
+    alert("Please enter a business idea first.");
     return;
   }
 
-  result.style.display = "block";
-  result.innerHTML =
-    "<strong>Boardroom session created.</strong><br><br>" +
-    "The agents are ready to analyze:<br><br>" +
-    "<em>" + idea.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</em><br><br>" +
-    "AI connections will be added next.";
+  const button = document.querySelector("button");
+  button.disabled = true;
+  button.textContent = "Boardroom is thinking...";
+
+  try {
+    const response = await fetch("/api/boardroom", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idea })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Something went wrong.");
+    }
+
+    alert(data.response);
+  } catch (error) {
+    alert("Boardroom error: " + error.message);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Start Boardroom Debate";
+  }
 }
 </script>
 
