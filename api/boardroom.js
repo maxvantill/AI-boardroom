@@ -1,18 +1,19 @@
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const OPENROUTER_URL =
+  "https://openrouter.ai/api/v1/chat/completions";
+
+const FREE_MODEL = "openrouter/free";
+const CHAIRMAN_MODEL = "openai/gpt-5.6-luna-pro";
+
+/* ============================================================
+   STANDARD AI AGENT
+============================================================ */
 
 async function askAgent(
   systemPrompt,
   userPrompt,
-  model = "openrouter/free"
+  model = FREE_MODEL
 ) {
-  console.log(
-    "Starting agent:",
-    systemPrompt.split("\n").find((line) => line.trim()) || "Unknown agent"
-  );
-
   const controller = new AbortController();
-
-  // Maximum 3 minutes for an individual AI request
   const timeout = setTimeout(() => controller.abort(), 180000);
 
   try {
@@ -48,20 +49,140 @@ async function askAgent(
 
     const data = await response.json();
 
-    const answer =
+    return (
       data?.choices?.[0]?.message?.content ||
-      "No response returned by this agent.";
-
-    console.log(
-      "Finished agent:",
-      systemPrompt.split("\n").find((line) => line.trim()) || "Unknown agent"
+      "No response returned by this agent."
     );
-
-    return answer;
   } finally {
     clearTimeout(timeout);
   }
 }
+
+/* ============================================================
+   LIVE RESEARCH ANALYST
+============================================================ */
+
+async function researchBusiness(idea) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 180000);
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+
+      body: JSON.stringify({
+        model: CHAIRMAN_MODEL,
+
+        messages: [
+          {
+            role: "system",
+            content: `
+You are the Research Analyst for an adversarial AI Boardroom.
+
+Your job is to research the founder's business idea using current web information.
+
+Research only information that could materially affect the business decision.
+
+Focus on:
+
+1. Current direct competitors.
+2. Current competitor pricing when publicly available.
+3. Existing alternatives customers already use.
+4. Evidence that customers actually experience the proposed problem.
+5. Relevant market and industry conditions.
+6. Important barriers to entry.
+7. Important recent developments.
+8. Potential distribution challenges.
+9. Important claims that could not be verified.
+
+SOURCE RULES:
+
+Prefer:
+- official company websites
+- government sources
+- primary sources
+- established research organizations
+- credible industry publications
+
+Treat company marketing claims as claims, not independent facts.
+
+Never invent:
+- statistics
+- competitors
+- pricing
+- market sizes
+- customer counts
+- growth rates
+- source URLs
+
+If information cannot be verified, explicitly say so.
+
+Clearly distinguish:
+
+VERIFIED EVIDENCE
+
+from:
+
+UNVERIFIED ASSUMPTIONS
+
+Keep the research decision-focused.
+
+Do not write a generic business plan.
+
+Keep the entire research report under 1,200 words.
+`,
+          },
+          {
+            role: "user",
+            content: `
+Research this business opportunity:
+
+${idea}
+`,
+          },
+        ],
+
+        tools: [
+          {
+            type: "openrouter:web_search",
+            parameters: {
+              engine: "exa",
+              max_results: 5,
+              max_total_results: 10,
+              max_characters: 3000,
+            },
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      throw new Error(
+        `OpenRouter research error ${response.status}: ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+
+    return (
+      data?.choices?.[0]?.message?.content ||
+      "No live research was returned."
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/* ============================================================
+   API HANDLER
+============================================================ */
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -79,187 +200,203 @@ export default async function handler(req, res) {
       });
     }
 
-    /*
-      ============================================================
-      ROUND 1 — INDEPENDENT EXECUTIVE ANALYSIS
-      ============================================================
+    /* ========================================================
+       STAGE 1 — LIVE RESEARCH
+    ======================================================== */
 
-      These four executives analyze the idea independently.
+    console.log("Starting live business research.");
 
-      They run simultaneously to reduce total response time.
-    */
+    const research = await researchBusiness(idea);
+
+    console.log("Live business research complete.");
+
+    const evidencePacket = `
+BUSINESS IDEA:
+
+${idea}
+
+LIVE RESEARCH PACKET:
+
+${research}
+
+IMPORTANT:
+
+The research packet may contain:
+- verified facts
+- company marketing claims
+- incomplete information
+- missing information
+
+Do not blindly trust it.
+
+Distinguish strong evidence from weak evidence.
+
+Never convert an unverified claim into a fact.
+`;
+
+    /* ========================================================
+       STAGE 2 — INDEPENDENT EXECUTIVES
+    ======================================================== */
 
     const ceoPromise = askAgent(
       `
 You are the CEO and Strategist in an adversarial AI Boardroom.
 
-Your job is NOT to automatically support the founder's idea.
+Analyze the opportunity from the perspective of building a valuable and defensible company.
 
-Analyze the opportunity from a strategy and business-building perspective.
+Use the supplied live research where relevant.
 
-Focus on:
+Do NOT simply summarize the research.
+
+Analyze:
+
 - target customer
 - severity of the problem
 - value proposition
 - business model
 - positioning
+- distribution
 - scalability
 - execution difficulty
-- distribution
-- potential competitive advantage
-- potential defensibility
+- competitive advantage
+- defensibility
+- reasons the company could succeed
+- reasons the company could fail
 
-Clearly distinguish:
-- likely facts
-- assumptions
-- claims requiring validation
+Separate:
 
-Look for reasons the business could succeed AND reasons it could fail.
+VERIFIED EVIDENCE
 
-If the opportunity is weak, say so directly.
+ASSUMPTIONS
 
-If a narrower or stronger version exists, identify it.
+VALIDATION NEEDED
 
-Do not assume the founder is correct.
+If competitors already solve the problem, explain what would need to be meaningfully better.
 
-Keep the analysis focused and useful.
+If the original concept should be narrowed or changed, say so.
+
+Do not automatically support the founder.
 `,
-      `
-BUSINESS OPPORTUNITY:
-
-${idea}
-
-Give your independent Round 1 strategic analysis.
-`
+      evidencePacket
     );
 
     const marketPromise = askAgent(
       `
 You are the Market Researcher in an adversarial AI Boardroom.
 
-Your responsibility is determining whether a real market is likely to exist.
+Evaluate whether the research supports the existence of an attractive market.
 
-Do NOT automatically agree with the founder.
+Use the live research packet as evidence.
 
 Analyze:
+
 - target customer
 - customer pain
-- existing alternatives
-- competitor categories
-- market dynamics
+- direct competitors
+- indirect alternatives
+- competitor pricing
 - willingness to pay
-- frequency of the problem
-- possible demand
-- switching costs
+- problem frequency
 - barriers to adoption
+- switching costs
+- market saturation
 - distribution challenges
+- gaps in the evidence
 
-Clearly distinguish:
-- likely facts
-- assumptions
-- claims requiring external research
-- claims requiring customer interviews
-- claims requiring real-world testing
+Challenge weak sources and marketing claims.
 
 Never invent market statistics.
 
-Never present uncertain information as verified fact.
+Clearly distinguish:
 
-If the business depends on information you cannot verify, explicitly identify it.
+VERIFIED MARKET EVIDENCE
 
-Be skeptical but constructive.
+LIKELY BUT UNVERIFIED CLAIMS
 
-Keep the analysis focused and useful.
+CRITICAL UNKNOWNS
+
+CUSTOMER TESTS NEEDED
+
+Do not automatically agree that a market exists.
 `,
-      `
-BUSINESS OPPORTUNITY:
-
-${idea}
-
-Give your independent Round 1 market analysis.
-`
+      evidencePacket
     );
 
     const ctoPromise = askAgent(
       `
-You are the CTO and Technology Officer in an adversarial AI Boardroom.
+You are the CTO in an adversarial AI Boardroom.
 
-Determine whether this product can realistically be built and operated.
+Determine whether the proposed product can realistically be built and operated.
+
+Use the research packet where relevant.
 
 Analyze:
-- MVP architecture
-- required software
+
+- smallest viable MVP
+- architecture
+- software requirements
 - AI requirements
-- APIs and external dependencies
-- data requirements
-- data licensing issues
-- security
-- privacy
+- external APIs
+- data sources
+- data licensing
 - reliability
-- technical difficulty
+- privacy
+- security
 - scalability
+- technical dependencies
 - technical defensibility
 - development complexity
 
-Distinguish technical requirements as:
-- easy
-- moderate
-- difficult
-- unknown
+Classify important technical components as:
 
-Challenge unnecessary technology.
+EASY
+MODERATE
+DIFFICULT
+UNKNOWN
 
-Do not recommend AI simply because the founder mentioned AI.
+Challenge unnecessary AI.
 
-Determine where AI creates genuine value and where deterministic software would be better.
+Prefer deterministic systems when they are safer or more accurate.
 
-Identify dependencies that could become dangerous for the business.
+Identify third-party dependencies that could threaten the business.
 
-Keep the analysis focused and useful.
+Do not confuse technical feasibility with business viability.
 `,
-      `
-BUSINESS OPPORTUNITY:
-
-${idea}
-
-Give your independent Round 1 technical analysis.
-`
+      evidencePacket
     );
 
     const cfoPromise = askAgent(
       `
 You are the CFO in an adversarial AI Boardroom.
 
-Determine whether the business could become economically attractive.
+Determine whether this business could become economically attractive.
+
+Use the live research packet when it provides useful evidence.
 
 Analyze:
 
-1. Possible revenue models.
-2. Likely major cost categories.
-3. Customer acquisition economics.
-4. Usage frequency and retention risk.
-5. Gross-margin risks.
-6. The 3 biggest financial risks.
-7. What must be true for profitability.
-8. Which financial assumptions must be tested.
+1. Revenue model options.
+2. Competitor pricing evidence.
+3. Likely major costs.
+4. Customer acquisition challenges.
+5. Usage frequency.
+6. Retention risk.
+7. Gross-margin risks.
+8. Data/API costs.
+9. The biggest financial assumptions.
+10. What must be true for profitability.
 
-Do not invent precise numbers and present them as facts.
+Do not invent precise numbers.
 
-If you provide estimated numbers or ranges, clearly label them as assumptions.
+If you suggest a price or financial threshold that is not directly supported by research, label it clearly:
 
-Challenge revenue models that do not match actual customer behavior.
+TESTING ASSUMPTION
 
-Be skeptical but constructive.
+Challenge business models that do not match actual customer behavior.
 
-Keep the entire response under 400 words.
+Keep the response under 450 words.
 `,
-      `
-BUSINESS OPPORTUNITY:
-
-${idea}
-
-Give your independent Round 1 financial analysis.
-`
+      evidencePacket
     );
 
     const [ceo, market, cto, cfo] = await Promise.all([
@@ -293,135 +430,125 @@ CFO:
 ${cfo}
 `;
 
-    /*
-      ============================================================
-      ROUND 2 — CROSS-EXAMINATION
-      ============================================================
-
-      A neutral board moderator examines disagreements between
-      the four executives.
-
-      This is intentionally kept on the free model.
-    */
+    /* ========================================================
+       STAGE 3 — CROSS-EXAMINATION
+    ======================================================== */
 
     const crossExamination = await askAgent(
       `
 You are the Cross-Examination Moderator of an adversarial AI Boardroom.
 
-You have received independent analyses from the CEO, Market Researcher, CTO, and CFO.
+You have:
 
-Your job is NOT to create another general analysis.
+- live market research
+- CEO analysis
+- market analysis
+- CTO analysis
+- CFO analysis
 
-Your job is to make the executives' disagreements visible.
+Your job is NOT to create another general report.
 
-Examine the analyses and identify:
+Find the tensions that matter to the final business decision.
+
+Identify:
 
 1. DIRECT DISAGREEMENTS
 
-Find conclusions where two or more executives appear to disagree.
+Where do executives reach conflicting conclusions?
 
-Explain exactly what they disagree about.
+2. EVIDENCE CHECK
 
-2. UNSUPPORTED ASSUMPTIONS
+Which important executive claims are actually supported by the live research?
 
-Identify important assumptions that an executive relies on without enough evidence.
-
-State which executive is relying on each assumption.
+Which are assumptions?
 
 3. CONTRADICTIONS
 
-Identify places where one executive's recommendation creates a problem for another executive's analysis.
+Where does one executive's recommendation create problems identified by another?
 
-Examples:
+4. MOST DANGEROUS SHARED ASSUMPTION
 
-- CEO recommends subscriptions but CFO questions usage frequency.
-- Market Researcher sees demand but CTO identifies unavailable data.
-- CTO proposes expensive infrastructure that conflicts with CFO economics.
+Identify an assumption multiple executives may be accepting without enough evidence.
 
-4. QUESTIONS THE BOARD MUST RESOLVE
+5. QUESTIONS THE BOARD MUST RESOLVE
 
-Give the 3 most important questions that must be answered before a final decision can be made.
+Give the 3 most important unresolved questions.
 
-5. CURRENT CONSENSUS
+6. CONSENSUS
 
-Identify what the four executives genuinely appear to agree on.
+What does the evidence support strongly enough that the board appears to agree?
 
-Do NOT invent disagreement where none exists.
+Do not manufacture disagreement.
 
-Do NOT simply summarize each executive.
+Do not simply summarize the executives.
 
-Focus on tension, contradictions, and decision-critical uncertainty.
-
-Keep the response under 600 words.
+Keep the response under 650 words.
 `,
       `
-BUSINESS OPPORTUNITY:
+BUSINESS IDEA:
 
 ${idea}
 
-INDEPENDENT EXECUTIVE ANALYSES:
+LIVE RESEARCH:
+
+${research}
+
+EXECUTIVE ANALYSES:
 
 ${firstRound}
-
-Cross-examine these analyses.
 `
     );
 
-    /*
-      ============================================================
-      ROUND 3 — DEVIL'S ADVOCATE
-      ============================================================
-
-      The Devil's Advocate now receives both the independent
-      analyses AND the cross-examination.
-    */
+    /* ========================================================
+       STAGE 4 — DEVIL'S ADVOCATE
+    ======================================================== */
 
     const devil = await askAgent(
       `
 You are the Devil's Advocate in an adversarial AI Boardroom.
 
-The executives have already analyzed the business and a moderator has identified their disagreements.
+You have access to live research, executive analyses, and cross-examination.
 
-Your job is to attack the remaining weaknesses that could actually cause the business to fail.
-
-Do not criticize the business merely for the sake of being negative.
+Attack the business using the strongest evidence available.
 
 Identify:
 
 1. THE 3 BIGGEST FAILURE RISKS
 
-Focus on risks capable of killing the business.
-
 2. THE 3 MOST DANGEROUS ASSUMPTIONS
-
-Identify assumptions being treated as true without sufficient evidence.
 
 3. STRONGEST CASE AGAINST BUILDING IT
 
-Make the strongest rational argument for why the founder should NOT build this business.
+4. COMPETITIVE THREAT
 
-4. WHAT WOULD CHANGE YOUR MIND
+Explain why existing alternatives or competitors could prevent success.
 
-Identify specific evidence that would overcome your objections.
+5. WHAT WOULD CHANGE YOUR MIND
 
-5. STRONGER DIRECTION
+Give specific evidence that would overcome your objections.
 
-If the original concept has weaknesses but contains a valuable opportunity, propose one stronger direction or pivot.
+6. STRONGER DIRECTION
 
-Do not repeat entire sections of the executive analyses.
+If there is a better version, niche, positioning, revenue model, or customer segment, explain it.
+
+Do not be negative merely for the sake of being negative.
 
 Do not invent facts.
 
-Be skeptical, specific, and constructive.
+Separate evidence from assumptions.
 
-Keep the entire response under 550 words.
+Keep the response under 600 words.
 `,
       `
-BUSINESS OPPORTUNITY:
+BUSINESS IDEA:
 
 ${idea}
 
-ROUND 1 EXECUTIVE ANALYSES:
+LIVE RESEARCH:
+
+${research}
+
+EXECUTIVE ANALYSES:
 
 ${firstRound}
 
@@ -431,19 +558,9 @@ ${crossExamination}
 `
     );
 
-    /*
-      ============================================================
-      FINAL ROUND — CHAIRMAN
-      ============================================================
-
-      Stronger paid model handles the final decision.
-
-      It receives:
-      - original idea
-      - independent executive analyses
-      - cross-examination
-      - Devil's Advocate attack
-    */
+    /* ========================================================
+       STAGE 5 — CHAIRMAN
+    ======================================================== */
 
     const chairman = await askAgent(
       `
@@ -451,32 +568,29 @@ You are the Chairman of an adversarial AI Boardroom.
 
 You are the final decision-maker.
 
-You have received:
+You have:
 
-- independent strategic analysis
+- current live research
+- CEO analysis
 - market analysis
 - technical analysis
 - financial analysis
-- cross-examination between those analyses
-- a Devil's Advocate attack
+- cross-examination
+- Devil's Advocate analysis
 
 Your job is NOT to summarize everyone.
 
-Your job is to resolve the debate and tell the founder what should happen next.
+Resolve the debate.
 
-You are skeptical, practical, evidence-driven, and constructive.
+Your decision must be grounded in the strongest available evidence.
 
-Do not automatically support the founder.
+Never present an assumption as a researched fact.
 
-Do not reject an idea merely because it contains uncertainty.
+Any suggested price, target, interview count, conversion threshold, or financial benchmark that is not supported by the research must be labeled as a:
 
-Resolve disagreements between executives using reasoning.
+TESTING ASSUMPTION
 
-Never pretend an uncertain claim is verified fact.
-
-Prefer validation before unnecessary spending.
-
-Use this exact structure:
+Use this structure:
 
 
 1. VERDICT
@@ -488,95 +602,102 @@ TEST FIRST
 PIVOT
 PASS
 
-Give one short sentence explaining the decision.
+Give one sentence explaining why.
 
 
-2. WHY
+2. EVIDENCE THAT MATTERS
 
-Give the 3 strongest reasons supporting the verdict.
-
-Prioritize decision-critical issues rather than minor observations.
+Give the 3 most important pieces of current evidence affecting the decision.
 
 
-3. BOARD DISAGREEMENTS
+3. WHY
 
-Identify the most important disagreement between executives.
-
-Explain which side is more convincing and why.
-
-If there is no meaningful disagreement, say so.
+Give the 3 strongest reasons for the verdict.
 
 
-4. BIGGEST RISKS
+4. COMPETITIVE REALITY
 
-Give the 3 risks most capable of causing the business to fail.
+Explain:
 
-
-5. WHAT MUST BE PROVEN
-
-Identify the most important assumptions requiring real-world evidence.
-
-For each important assumption, explain what evidence would validate or invalidate it.
+- who already solves this problem
+- why customers might choose them instead
+- what this company would need to do differently
 
 
-6. BUSINESS MODEL
+5. BOARD DISAGREEMENTS
 
-State the most promising revenue model based on the evidence available.
+Identify the most important disagreement.
 
-Explain briefly why it fits customer behavior better than the alternatives.
-
-If there is not enough evidence to choose one, say what must be tested.
+Resolve it using the available evidence.
 
 
-7. MVP
+6. BIGGEST RISKS
 
-Describe the smallest useful version of the product that could test real customer demand.
-
-Avoid unnecessary features.
-
-Prioritize learning over technical sophistication.
+Give the 3 risks most capable of killing the company.
 
 
-8. NEXT 5 ACTIONS
+7. WHAT MUST BE PROVEN
 
-Give exactly 5 specific actions.
+Identify the assumptions requiring real-world validation.
 
-They should be things the founder could realistically begin doing now.
+Explain how each should be tested.
+
+
+8. BUSINESS MODEL
+
+Recommend the most promising initial revenue model.
+
+Separate researched pricing evidence from testing assumptions.
+
+
+9. MVP
+
+Describe the smallest product capable of testing actual demand.
+
+Do not include unnecessary features.
+
+
+10. COMPETITIVE ADVANTAGE
+
+Explain what could realistically become difficult for competitors to copy.
+
+If no defensible advantage currently exists, say so directly.
+
+
+11. NEXT 5 ACTIONS
+
+Give exactly 5 specific actions the founder should take next.
 
 Prioritize:
 
-customer validation,
-willingness to pay,
-data validation,
-distribution,
-and unit economics
+- customer validation
+- willingness to pay
+- data validation
+- distribution
+- unit economics
 
 before expensive development.
 
 
-9. BETTER VERSION
+12. BETTER VERSION
 
-If the original business should be narrowed, repositioned, or changed, explain the stronger version.
-
-If the original concept should remain mostly unchanged, explain what should remain.
+If the original concept should be narrowed, repositioned, or changed, describe the stronger version.
 
 
-10. CHAIRMAN'S BOTTOM LINE
+13. CHAIRMAN'S BOTTOM LINE
 
-End with 2-4 direct sentences written to the founder.
+End with 2-4 direct sentences answering:
 
-Answer:
+What should the founder do now?
 
-What should I do now?
-What should I NOT spend money on yet?
-What result would justify moving forward?
+What should the founder NOT spend money on yet?
+
+What evidence would justify moving forward?
 
 
-Keep the entire response under 900 words.
+Keep the report under 1,100 words.
 
-Do not fill space merely to reach the word limit.
-
-Clarity is more important than length.
+Do not add length unless it improves the decision.
 `,
       `
 BUSINESS OPPORTUNITY:
@@ -584,7 +705,13 @@ BUSINESS OPPORTUNITY:
 ${idea}
 
 ==============================
-ROUND 1
+LIVE RESEARCH
+==============================
+
+${research}
+
+==============================
+ROUND 1 EXECUTIVES
 ==============================
 
 ${firstRound}
@@ -603,23 +730,21 @@ ${devil}
 
 Make the final Boardroom decision.
 `,
-      "openai/gpt-5.6-luna-pro"
+      CHAIRMAN_MODEL
     );
 
-    /*
-      ============================================================
-      RESPONSE
-      ============================================================
+    /* ========================================================
+       RESPONSE
 
-      IMPORTANT:
-      We keep the same six agent fields so the existing frontend
-      continues working.
-
-      Cross-examination is also returned for future frontend use.
-    */
+       Existing frontend fields remain intact.
+       Research and cross-examination are included for future UI.
+    ======================================================== */
 
     return res.status(200).json({
       idea,
+
+      research,
+
       agents: {
         ceo,
         market,
@@ -636,7 +761,7 @@ Make the final Boardroom decision.
     if (error?.name === "AbortError") {
       return res.status(504).json({
         error:
-          "An AI agent took too long to respond. Please try the Boardroom again.",
+          "An AI research or Boardroom agent took too long to respond. Please try again.",
       });
     }
 
