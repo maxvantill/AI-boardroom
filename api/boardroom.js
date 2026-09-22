@@ -4,6 +4,9 @@ const OPENROUTER_URL =
 const FAST_MODEL = "openai/gpt-5.6-luna";
 const CHAIRMAN_MODEL = "openai/gpt-5.6-luna-pro";
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_SECRET_KEY = process.env.SUPABASE_SECRET_KEY;
+
 /* =========================================================
    STANDARD AGENT
 ========================================================= */
@@ -153,6 +156,51 @@ Keep the report under 700 words.
     );
   } finally {
     clearTimeout(timeout);
+  }
+}
+
+/* =========================================================
+   SAVE REPORT TO SUPABASE
+========================================================= */
+
+async function saveReportToSupabase(idea, agents) {
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY) {
+    console.error("Supabase environment variables are missing.");
+    return false;
+  }
+
+  try {
+    const response = await fetch(
+      `${SUPABASE_URL}/rest/v1/boardroom_reports`,
+      {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_SECRET_KEY,
+          Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+          "Content-Type": "application/json",
+          Prefer: "return=minimal",
+        },
+        body: JSON.stringify({
+          idea,
+          agents,
+          user_id: null,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error(
+        `Supabase save error ${response.status}: ${errorText}`
+      );
+      return false;
+    }
+
+    console.log("Boardroom report saved to Supabase.");
+    return true;
+  } catch (error) {
+    console.error("Supabase save failed:", error);
+    return false;
   }
 }
 
@@ -556,6 +604,25 @@ ${devil}
       90000
     );
 
+    const agents = {
+      ceo,
+      market,
+      cto,
+      cfo,
+      devil,
+      chairman,
+      crossExamination,
+    };
+
+    /* =====================================================
+       SAVE TO SUPABASE
+    ===================================================== */
+
+    const cloudSaved = await saveReportToSupabase(
+      idea.trim(),
+      agents
+    );
+
     /* =====================================================
        RESPONSE
     ===================================================== */
@@ -563,16 +630,8 @@ ${devil}
     return res.status(200).json({
       idea,
       research,
-
-      agents: {
-        ceo,
-        market,
-        cto,
-        cfo,
-        devil,
-        chairman,
-        crossExamination,
-      },
+      agents,
+      cloudSaved,
     });
   } catch (error) {
     console.error("Boardroom error:", error);
