@@ -1092,7 +1092,30 @@ let nextText = extractSection(
       closeModal();
     }
   });
+function saveBoardroomReport(idea, agents) {
+  try {
+    const reports = JSON.parse(
+      localStorage.getItem("aiBoardroomReports") || "[]"
+    );
 
+    const report = {
+      id: Date.now(),
+      idea: idea,
+      createdAt: new Date().toISOString(),
+      agents: agents
+    };
+
+    reports.unshift(report);
+
+    // Keep the 20 most recent reports
+    localStorage.setItem(
+      "aiBoardroomReports",
+      JSON.stringify(reports.slice(0, 20))
+    );
+  } catch (error) {
+    console.error("Could not save Boardroom report:", error);
+  }
+}
   async function startBoardroom() {
     const ideaInput = document.getElementById("idea");
     const idea = ideaInput.value.trim();
@@ -1132,7 +1155,7 @@ let nextText = extractSection(
 
       renderChairman(data.agents.chairman || "");
       renderAnalysisCards(data.agents);
-
+saveBoardroomReport(idea, data.agents);
       document.getElementById("landing").style.display = "none";
       document.getElementById("results").style.display = "block";
 
