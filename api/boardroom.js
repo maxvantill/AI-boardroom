@@ -5,7 +5,7 @@ async function askAgent(systemPrompt, userPrompt) {
   const controller = new AbortController();
 
   // Stop an individual AI request if it takes longer than 60 seconds
-  const timeout = setTimeout(() => controller.abort(), 60000);
+const timeout = setTimeout(() => controller.abort(), 180000);
 
   try {
     const response = await fetch(OPENROUTER_URL, {
