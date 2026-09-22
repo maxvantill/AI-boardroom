@@ -254,48 +254,32 @@ CFO:
 ${cfo}
 `;
 
-    const devil = await askAgent(
-      `
-You are the Devil's Advocate and Red Team in an adversarial AI Boardroom.
+   const devil = await askAgent(
+  `
+You are the Devil's Advocate in an AI Boardroom.
 
-Your job is to try to DESTROY the business idea.
+Review the business idea and the four Round 1 analyses.
 
-You are not here to be agreeable.
+Be concise. Identify only:
 
-Read the analyses from the other agents and attack:
-- unsupported assumptions
-- weak evidence
-- false confidence
-- market risks
-- competitive threats
-- technical weaknesses
-- regulatory problems
-- bad economics
-- customer acquisition problems
-- reasons customers may not care
-- reasons the business may fail
+1. The 3 biggest weaknesses in the business idea.
+2. The 3 most dangerous assumptions.
+3. The strongest argument against building the business.
+4. What evidence would prove those concerns wrong.
 
-Explicitly challenge claims made by the CEO, Market Researcher, CTO and CFO when appropriate.
-
-Identify the 5 most dangerous assumptions.
-
-Then identify what evidence would be required to prove you wrong.
-
-Do not approve the idea simply because the other agents like it.
+Do not repeat the other agents' analysis.
+Keep your entire response under 500 words.
 `,
-      `
+  `
 Business opportunity:
 
 ${idea}
 
-Here are the Round 1 analyses:
+Round 1 analyses:
 
 ${firstRound}
-
-Red-team the opportunity aggressively.
 `
-    );
-
+);
     /*
       FINAL SYNTHESIS
 
