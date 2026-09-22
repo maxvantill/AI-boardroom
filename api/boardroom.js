@@ -1,11 +1,19 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
-async function askAgent(systemPrompt, userPrompt) {
-  console.log("Starting agent:", systemPrompt.split("\n").find(line => line.trim()) || "Unknown agent");
+async function askAgent(
+  systemPrompt,
+  userPrompt,
+  model = "openrouter/free"
+) {
+  console.log(
+    "Starting agent:",
+    systemPrompt.split("\n").find((line) => line.trim()) || "Unknown agent"
+  );
+
   const controller = new AbortController();
 
-  // Stop an individual AI request if it takes longer than 60 seconds
-const timeout = setTimeout(() => controller.abort(), 180000);
+  // Stop an individual AI request if it takes longer than 3 minutes
+  const timeout = setTimeout(() => controller.abort(), 180000);
 
   try {
     const response = await fetch(OPENROUTER_URL, {
@@ -15,23 +23,24 @@ const timeout = setTimeout(() => controller.abort(), 180000);
         "Content-Type": "application/json",
       },
       signal: controller.signal,
-     body: JSON.stringify({
-  model: "openrouter/free",
-  messages: [
-    {
-      role: "system",
-      content: String(systemPrompt ?? ""),
-    },
-    {
-      role: "user",
-      content: String(userPrompt ?? ""),
-    },
-  ],
-}),
+      body: JSON.stringify({
+        model: model,
+        messages: [
+          {
+            role: "system",
+            content: String(systemPrompt ?? ""),
+          },
+          {
+            role: "user",
+            content: String(userPrompt ?? ""),
+          },
+        ],
+      }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
+
       throw new Error(
         `OpenRouter error ${response.status}: ${errorText}`
       );
@@ -39,16 +48,16 @@ const timeout = setTimeout(() => controller.abort(), 180000);
 
     const data = await response.json();
 
-const answer =
-  data?.choices?.[0]?.message?.content ||
-  "No response returned by this agent.";
+    const answer =
+      data?.choices?.[0]?.message?.content ||
+      "No response returned by this agent.";
 
-console.log(
-  "Finished agent:",
-  systemPrompt.split("\n").find(line => line.trim()) || "Unknown agent"
-);
+    console.log(
+      "Finished agent:",
+      systemPrompt.split("\n").find((line) => line.trim()) || "Unknown agent"
+    );
 
-return answer;
+    return answer;
   } finally {
     clearTimeout(timeout);
   }
@@ -72,11 +81,7 @@ export default async function handler(req, res) {
 
     /*
       ROUND 1
-
-      These four agents are independent.
-
-      We intentionally start all four requests BEFORE awaiting them,
-      allowing them to run simultaneously.
+      Four independent executive analyses.
     */
 
     const ceoPromise = askAgent(
@@ -141,6 +146,8 @@ Separate:
 
 Be skeptical.
 
+Never present an uncertain market claim as a verified fact.
+
 If there is not enough evidence to support an important claim, say that clearly.
 `,
       `
@@ -189,31 +196,37 @@ Give your independent Round 1 technical analysis.
 `
     );
 
-  const cfoPromise = askAgent(
-  `
-You are the CFO of an AI Boardroom.
+    const cfoPromise = askAgent(
+      `
+You are the CFO in an adversarial AI Boardroom.
 
 Give a concise financial analysis of the business idea.
 
-Cover only:
+Analyze:
+
 1. How the business could make money.
 2. The biggest costs.
 3. The 3 biggest financial risks.
-4. What must be true for the business to be profitable.
+4. What must be true for the business to become profitable.
+5. Which financial assumptions need to be tested.
 
-Use reasonable assumptions when exact numbers are unknown.
+Do not invent precise financial numbers and present them as facts.
+
+If you use estimated numbers, clearly label them as assumptions.
+
 Keep the entire response under 350 words.
 `,
-  `
+      `
 Business opportunity:
 
 ${idea}
 
 Give your independent Round 1 financial analysis.
 `
-);
+    );
+
     /*
-      Wait for all four independent agents together.
+      Run all four executives simultaneously.
     */
 
     const [ceo, market, cto, cfo] = await Promise.all([
@@ -223,86 +236,138 @@ Give your independent Round 1 financial analysis.
       cfoPromise,
     ]);
 
-    /*
-      ROUND 2
-
-      Devil's Advocate receives all four independent analyses.
-    */
-
     const firstRound = `
-CEO / Strategist:
+CEO / STRATEGIST:
+
 ${ceo}
 
 MARKET RESEARCHER:
+
 ${market}
 
 CTO:
+
 ${cto}
 
 CFO:
+
 ${cfo}
 `;
 
-   const devil = await askAgent(
-  `
-You are the Devil's Advocate in an AI Boardroom.
+    /*
+      ROUND 2
+      Devil's Advocate attacks the strongest assumptions.
+    */
 
-Review the business idea and the four Round 1 analyses.
+    const devil = await askAgent(
+      `
+You are the Devil's Advocate in an adversarial AI Boardroom.
 
-Be concise. Identify only:
+Your job is to stress-test the business after reviewing the four executive analyses.
+
+Do not criticize the idea just for the sake of being negative.
+
+Find the weaknesses that could actually cause the business to fail.
+
+Identify only:
 
 1. The 3 biggest weaknesses in the business idea.
+
 2. The 3 most dangerous assumptions.
+
 3. The strongest argument against building the business.
+
 4. What evidence would prove those concerns wrong.
 
+5. If the original idea is flawed, identify one potentially stronger direction or pivot worth testing.
+
 Do not repeat the other agents' analysis.
-Keep your entire response under 500 words.
+
+Be skeptical, specific, and constructive.
+
+Keep the entire response under 500 words.
 `,
-  `
+      `
 Business opportunity:
 
 ${idea}
 
-Round 1 analyses:
+ROUND 1 EXECUTIVE ANALYSES:
 
 ${firstRound}
 `
-);
+    );
+
     /*
       FINAL SYNTHESIS
-
-      Chairman sees the complete debate.
+      Chairman receives the complete debate.
     */
 
-const chairman = await askAgent(
-  `
-You are the Chairman of an AI Boardroom.
+    const chairman = await askAgent(
+      `
+You are the Chairman of an adversarial AI Boardroom.
 
-Give the founder a concise final decision based on the analyses below.
+You are responsible for making the final decision after reviewing the independent executives and the Devil's Advocate.
 
-Include only:
+You are balanced, skeptical, and constructive.
+
+Do not automatically support the founder.
+
+Do not automatically reject risky ideas either.
+
+Your job is to determine whether the opportunity deserves to be pursued, tested, changed, or abandoned.
+
+When agents disagree, resolve the disagreement instead of simply repeating both opinions.
+
+Give the founder a concise final decision.
+
+Use this structure:
 
 1. VERDICT
-Choose: PURSUE, TEST FIRST, PIVOT, or PASS.
+
+Choose exactly one:
+
+PURSUE
+TEST FIRST
+PIVOT
+PASS
 
 2. WHY
-Give the 3 strongest reasons for your verdict.
+
+Give the 3 strongest reasons for the verdict.
 
 3. BIGGEST RISKS
-Give the 3 biggest risks.
 
-4. NEXT STEPS
+Give the 3 risks most likely to cause the business to fail.
+
+4. WHAT MUST BE PROVEN
+
+Identify the most important assumptions that need real-world evidence.
+
+5. NEXT STEPS
+
 Give 5 specific actions the founder should take next.
 
-Do not repeat the other agents.
-Keep the entire response under 600 words.
+The actions should prioritize validation before unnecessary spending or development.
 
+6. BETTER VERSION
+
+If there is a meaningful way to improve or reposition the idea, explain it briefly.
+
+If the original idea is already strong, say what should remain unchanged.
+
+Do not repeat entire sections from the other executives.
+
+Do not pretend uncertain claims are verified facts.
+
+Keep the entire response under 700 words.
+`,
+      `
 Business opportunity:
 
 ${idea}
 
-ROUND 1:
+ROUND 1 EXECUTIVE ANALYSES:
 
 ${firstRound}
 
@@ -310,7 +375,11 @@ DEVIL'S ADVOCATE:
 
 ${devil}
 `
-);
+    );
+
+    /*
+      SEND RESULTS TO FRONTEND
+    */
 
     return res.status(200).json({
       idea,
