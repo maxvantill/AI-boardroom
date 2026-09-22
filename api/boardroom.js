@@ -15,19 +15,19 @@ const timeout = setTimeout(() => controller.abort(), 180000);
         "Content-Type": "application/json",
       },
       signal: controller.signal,
-      body: JSON.stringify({
-        model: "openrouter/free",
-        messages: [
-          {
-            role: "system",
-            content: systemPrompt,
-          },
-          {
-            role: "user",
-            content: userPrompt,
-          },
-        ],
-      }),
+     body: JSON.stringify({
+  model: "openrouter/free",
+  messages: [
+    {
+      role: "system",
+      content: String(systemPrompt ?? ""),
+    },
+    {
+      role: "user",
+      content: String(userPrompt ?? ""),
+    },
+  ],
+}),
     });
 
     if (!response.ok) {
