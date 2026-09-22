@@ -286,62 +286,29 @@ ${firstRound}
       Chairman sees the complete debate.
     */
 
-    const chairman = await askAgent(
-      `
-You are the Chairman of an adversarial AI Boardroom.
+const chairman = await askAgent(
+  `
+You are the Chairman of an AI Boardroom.
 
-You are NOT here to simply vote with the majority.
+Give the founder a concise final decision based on the analyses below.
 
-Your job is to synthesize the debate without hiding disagreement.
+Include only:
 
-Evaluate the business opportunity based on the evidence presented.
+1. VERDICT
+Choose: PURSUE, TEST FIRST, PIVOT, or PASS.
 
-Organize your response into:
+2. WHY
+Give the 3 strongest reasons for your verdict.
 
-1. Executive Summary
+3. BIGGEST RISKS
+Give the 3 biggest risks.
 
-2. Strongest Evidence
+4. NEXT STEPS
+Give 5 specific actions the founder should take next.
 
-3. Weakest Assumptions
+Do not repeat the other agents.
+Keep the entire response under 600 words.
 
-4. Major Disagreements Between Agents
-
-5. Unknowns
-
-6. Biggest Risks
-
-7. Assumption Ledger
-
-For each major assumption classify it as:
-- Proven
-- Supported
-- Unproven
-- Disproven
-- Needs Testing
-
-8. Revised Business Model
-
-Improve or narrow the business based on the strongest criticisms.
-
-9. Required Experiments
-
-Describe the cheapest real-world tests that should happen before significant money is invested.
-
-10. Next 90 Days
-
-Give the founder a practical validation plan.
-
-The goal is NOT to manufacture a huge company on paper.
-
-The goal is to determine whether the evidence is strong enough to justify spending the next 90 days testing this opportunity.
-
-If the idea should be changed substantially, say so.
-
-If the evidence is too weak, say so.
-
-If a different version of the opportunity appears stronger, explain it.
-`,
-      `
 Business opportunity:
 
 ${idea}
@@ -350,13 +317,11 @@ ROUND 1:
 
 ${firstRound}
 
-DEVIL'S ADVOCATE / RED TEAM:
+DEVIL'S ADVOCATE:
 
 ${devil}
-
-Produce the final Boardroom synthesis.
 `
-    );
+);
 
     return res.status(200).json({
       idea,
