@@ -324,7 +324,12 @@ async function startBoardroom() {
       throw new Error(data.error || "Something went wrong.");
     }
 
-   alert(data.agents.chairman);
+ document.getElementById("result").innerHTML = `
+  <h2>Final Boardroom Decision</h2>
+  <div>${data.agents.chairman.replace(/\n/g, "<br>")}</div>
+`;
+
+document.getElementById("result").style.display = "block";
   } catch (error) {
     alert("Boardroom error: " + error.message);
   } finally {
