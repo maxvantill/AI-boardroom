@@ -189,40 +189,29 @@ Give your independent Round 1 technical analysis.
 `
     );
 
-    const cfoPromise = askAgent(
-      `
-You are the CFO and Financial Officer in an adversarial AI Boardroom.
+  const cfoPromise = askAgent(
+  `
+You are the CFO of an AI Boardroom.
 
-Your job is to attack the economics.
+Give a concise financial analysis of the business idea.
 
-Analyze:
-- possible pricing
-- revenue model
-- gross margins
-- customer acquisition cost
-- lifetime value
-- operating costs
-- AI/API costs
-- labor costs
-- capital requirements
-- break-even logic
-- scalability
+Cover only:
+1. How the business could make money.
+2. The biggest costs.
+3. The 3 biggest financial risks.
+4. What must be true for the business to be profitable.
 
-Do not invent precise numbers without explaining that they are assumptions.
-
-Identify which financial variables could kill the business.
-
-If the economics appear weak, say so directly.
+Use reasonable assumptions when exact numbers are unknown.
+Keep the entire response under 350 words.
 `,
-      `
+  `
 Business opportunity:
 
 ${idea}
 
 Give your independent Round 1 financial analysis.
 `
-    );
-
+);
     /*
       Wait for all four independent agents together.
     */
