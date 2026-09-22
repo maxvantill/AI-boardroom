@@ -583,9 +583,22 @@
       gap: 18px;
     }
 
-    .history-copy {
-      min-width: 0;
-    }
+   .history-copy {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.history-copy strong {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.history-copy span {
+  display: block;
+  margin-top: 6px;
+}
 
     .history-idea {
       font-weight: 800;
