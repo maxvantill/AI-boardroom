@@ -917,17 +917,24 @@
     document.getElementById("verdictTitle").textContent = verdict;
     document.getElementById("verdictBadge").textContent = verdict;
 
-    let whyText = extractSection(
-      cleaned,
-      "WHY",
-      ["BIGGEST RISKS", "NEXT STEPS"]
-    );
+  let whyText = extractSection(
+  cleaned,
+  "(?:\\d+\\.\\s*)?WHY",
+  [
+    "(?:\\d+\\.\\s*)?COMPETITIVE REALITY",
+    "(?:\\d+\\.\\s*)?BOARD DISAGREEMENT",
+    "(?:\\d+\\.\\s*)?BIGGEST RISKS"
+  ]
+);
 
-    let nextText = extractSection(
-      cleaned,
-      "NEXT STEPS",
-      []
-    );
+let nextText = extractSection(
+  cleaned,
+  "(?:\\d+\\.\\s*)?NEXT 5 ACTIONS",
+  [
+    "(?:\\d+\\.\\s*)?BETTER VERSION",
+    "(?:\\d+\\.\\s*)?CHAIRMAN'S BOTTOM LINE"
+  ]
+);
 
     let whyItems = splitNumberedItems(whyText, 3);
 
