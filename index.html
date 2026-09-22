@@ -1,458 +1,650 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AI Boardroom</title>
-
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    :root {
-      --bg: #080d14;
-      --panel: #0e1621;
-      --panel-2: #111c29;
-      --border: #223044;
-      --text: #f4f7fb;
-      --muted: #8f9bad;
-      --green: #4ade80;
-      --green-dark: #163c2a;
-    }
-
-    body {
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 50% 0%, rgba(74, 222, 128, 0.07), transparent 35%),
-        var(--bg);
-      color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    }
-
-    /* HEADER */
-
-    .header {
-      height: 72px;
-      padding: 0 32px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(8, 13, 20, 0.92);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      position: sticky;
-      top: 0;
-      z-index: 20;
-      backdrop-filter: blur(12px);
-    }
-
-    .logo {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-
-    .logo span {
-      color: var(--green);
-    }
-
-    .status {
-      color: var(--green);
-      font-size: 13px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--green);
-      box-shadow: 0 0 12px rgba(74, 222, 128, 0.7);
-    }
-
-    /* PAGE */
-
-    .container {
-      max-width: 1250px;
-      margin: 0 auto;
-      padding: 60px 24px 90px;
-    }
-
-    .hero {
-      text-align: center;
-      max-width: 760px;
-      margin: 0 auto 48px;
-    }
-
-    .eyebrow {
-      color: var(--green);
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      font-size: 12px;
-      font-weight: 800;
-      margin-bottom: 14px;
-    }
-
-    .hero h1 {
-      font-size: clamp(38px, 6vw, 64px);
-      line-height: 1.03;
-      letter-spacing: -2px;
-      margin-bottom: 18px;
-    }
-
-    .hero p {
-      color: var(--muted);
-      font-size: 18px;
-      line-height: 1.7;
-    }
-
-    /* BOARD */
-
-    .section-title {
-      margin-bottom: 18px;
-    }
-
-    .section-title h2 {
-      font-size: 22px;
-      margin-bottom: 5px;
-    }
-
-    .section-title p {
-      color: var(--muted);
-      font-size: 14px;
-    }
-
-    .board {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-bottom: 42px;
-    }
-
-    .agent {
-      background: linear-gradient(145deg, var(--panel), #0b121b);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 22px;
-      min-height: 180px;
-      transition: 0.2s ease;
-    }
-
-    .agent:hover {
-      transform: translateY(-2px);
-      border-color: #35475f;
-    }
-
-    .agent.active {
-      border-color: rgba(74, 222, 128, 0.55);
-      box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.08);
-    }
-
-    .agent-header {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      margin-bottom: 15px;
-    }
-
-    .icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
-      background: #172334;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 20px;
-      flex-shrink: 0;
-    }
-
-    .agent h3 {
-      font-size: 17px;
-      margin-bottom: 3px;
-    }
-
-    .role {
-      color: var(--green);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .agent-description {
-      color: var(--muted);
-      line-height: 1.55;
-      font-size: 14px;
-    }
-
-    .agent-response {
-      display: none;
-      margin-top: 18px;
-      padding-top: 17px;
-      border-top: 1px solid var(--border);
-      color: #d8e0eb;
-      line-height: 1.65;
-      font-size: 14px;
-      white-space: pre-wrap;
-    }
-
-    .agent.has-response .agent-description {
-      display: none;
-    }
-
-    .agent.has-response .agent-response {
-      display: block;
-    }
-
-    /* INPUT */
-
-    .input-box {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 28px;
-      margin-bottom: 28px;
-    }
-
-    .input-box h2 {
-      font-size: 22px;
-      margin-bottom: 7px;
-    }
-
-    .input-box > p {
-      color: var(--muted);
-      margin-bottom: 20px;
-      line-height: 1.5;
-    }
-
-    textarea {
-      width: 100%;
-      min-height: 145px;
-      resize: vertical;
-      background: #070c12;
-      color: white;
-      border: 1px solid #2a394d;
-      border-radius: 12px;
-      padding: 17px;
-      font: inherit;
-      font-size: 15px;
-      line-height: 1.55;
-      outline: none;
-      transition: 0.2s;
-    }
-
-    textarea:focus {
-      border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.08);
-    }
-
-    textarea::placeholder {
-      color: #667386;
-    }
-
-    .action-row {
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      margin-top: 16px;
-    }
-
-    button {
-      background: var(--green);
-      color: #06120b;
-      border: none;
-      border-radius: 10px;
-      padding: 14px 22px;
-      font-size: 15px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    button:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.05);
-    }
-
-    button:disabled {
-      cursor: not-allowed;
-      opacity: 0.65;
-    }
-
-    .loading-text {
-      color: var(--muted);
-      font-size: 13px;
-      display: none;
-    }
-
-    .loading-text.show {
-      display: block;
-    }
-
-    /* FINAL DECISION */
-
-    #result {
-      display: none;
-      background:
-        linear-gradient(
-          135deg,
-          rgba(74, 222, 128, 0.09),
-          rgba(14, 22, 33, 0.95) 45%
-        );
-      border: 1px solid rgba(74, 222, 128, 0.35);
-      border-radius: 18px;
-      overflow: hidden;
-      margin-top: 28px;
-    }
-
-    .result-header {
-      padding: 23px 26px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 15px;
-    }
-
-    .result-label {
-      color: var(--green);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1.8px;
-      font-weight: 800;
-      margin-bottom: 5px;
-    }
-
-    .result-header h2 {
-      font-size: 23px;
-    }
-
-    .decision-badge {
-      background: rgba(74, 222, 128, 0.12);
-      color: var(--green);
-      border: 1px solid rgba(74, 222, 128, 0.25);
-      padding: 8px 11px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .result-content {
-      padding: 26px;
-      color: #dce4ee;
-      line-height: 1.75;
-      font-size: 15px;
-      white-space: pre-wrap;
-    }
-
-    /* ERROR */
-
-    .error-box {
-      display: none;
-      background: #241114;
-      border: 1px solid #642b33;
-      color: #ffb4bd;
-      padding: 16px 18px;
-      border-radius: 12px;
-      margin-top: 18px;
-      line-height: 1.5;
-      font-size: 14px;
-    }
-
-    /* MOBILE */
-
-    @media (max-width: 900px) {
-      .board {
-        grid-template-columns: repeat(2, 1fr);
-      }
-
-      .container {
-        padding-top: 45px;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .header {
-        padding: 0 18px;
-      }
-
-      .logo {
-        font-size: 19px;
-      }
-
-      .status {
-        font-size: 11px;
-      }
-
-      .container {
-        padding: 35px 15px 60px;
-      }
-
-      .hero {
-        margin-bottom: 35px;
-      }
-
-      .hero h1 {
-        letter-spacing: -1.3px;
-      }
-
-      .hero p {
-        font-size: 16px;
-      }
-
-      .board {
-        grid-template-columns: 1fr;
-      }
-
-      .input-box {
-        padding: 20px;
-      }
-
-      .result-header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Boardroom</title>
+
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #080d15;
+  --panel: #0c1420;
+  --panel2: #101b2a;
+  --border: #23354a;
+  --text: #f3f7fb;
+  --muted: #94a3b8;
+  --green: #4ade80;
+  --green-dark: #22c55e;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(74,222,128,.055), transparent 30%),
+    var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+button,
+textarea {
+  font-family: inherit;
+}
+
+/* HEADER */
+
+.header {
+  height: 76px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(8,13,21,.94);
+}
+
+.logo {
+  font-size: 23px;
+  font-weight: 800;
+  letter-spacing: -1px;
+}
+
+.logo span {
+  color: var(--green);
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: var(--green);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 12px var(--green);
+}
+
+/* MAIN */
+
+.container {
+  width: min(1250px, calc(100% - 40px));
+  margin: auto;
+  padding: 64px 0 80px;
+}
+
+/* HERO */
+
+.hero {
+  max-width: 850px;
+  margin: 0 auto 65px;
+  text-align: center;
+}
+
+.eyebrow {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  margin-bottom: 20px;
+}
+
+.hero h1 {
+  font-size: clamp(42px, 5vw, 68px);
+  line-height: 1.02;
+  letter-spacing: -3px;
+  margin-bottom: 24px;
+}
+
+.hero p {
+  max-width: 760px;
+  margin: auto;
+  color: var(--muted);
+  font-size: 19px;
+  line-height: 1.65;
+}
+
+/* SECTION HEADERS */
+
+.section-title {
+  font-size: 25px;
+  letter-spacing: -0.7px;
+  margin-bottom: 5px;
+}
+
+.section-subtitle {
+  color: var(--muted);
+  font-size: 15px;
+  margin-bottom: 20px;
+}
+
+/* TEAM CARDS */
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 48px;
+}
+
+.agent {
+  background: linear-gradient(145deg, #0d1724, #0a121d);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  min-height: 180px;
+  transition: transform .2s ease, border-color .2s ease;
+}
+
+.agent:hover {
+  transform: translateY(-2px);
+  border-color: #36506c;
+}
+
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  margin-bottom: 17px;
+}
+
+.icon {
+  width: 46px;
+  height: 46px;
+  flex: 0 0 46px;
+  border-radius: 12px;
+  background: #142337;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 19px;
+}
+
+.agent h3 {
+  font-size: 17px;
+  margin-bottom: 3px;
+}
+
+.role {
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.agent p {
+  color: var(--muted);
+  line-height: 1.55;
+  font-size: 14px;
+}
+
+/* INPUT */
+
+.input-box {
+  margin-top: 10px;
+  background: linear-gradient(145deg, #0d1724, #0a121d);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 28px;
+}
+
+.input-box h2 {
+  font-size: 24px;
+  margin-bottom: 7px;
+}
+
+.input-box > p {
+  color: var(--muted);
+  margin-bottom: 19px;
+  line-height: 1.5;
+}
+
+textarea {
+  width: 100%;
+  min-height: 145px;
+  resize: vertical;
+  border: 1px solid #2b3e55;
+  border-radius: 12px;
+  background: #070c13;
+  color: white;
+  padding: 17px;
+  font-size: 15px;
+  line-height: 1.6;
+  outline: none;
+}
+
+textarea:focus {
+  border-color: var(--green);
+}
+
+textarea::placeholder {
+  color: #65758b;
+}
+
+.primary-btn {
+  margin-top: 16px;
+  border: 0;
+  border-radius: 10px;
+  padding: 14px 23px;
+  background: var(--green);
+  color: #05200f;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: transform .15s ease, opacity .15s ease;
+}
+
+.primary-btn:hover {
+  transform: translateY(-1px);
+}
+
+.primary-btn:disabled {
+  opacity: .55;
+  cursor: wait;
+  transform: none;
+}
+
+/* LOADING */
+
+.loading {
+  display: none;
+  margin-top: 18px;
+  color: var(--muted);
+  font-size: 14px;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinner {
+  width: 17px;
+  height: 17px;
+  border: 2px solid #334155;
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* RESULTS */
+
+#results {
+  display: none;
+  margin-top: 60px;
+  scroll-margin-top: 25px;
+}
+
+.results-heading {
+  margin-bottom: 20px;
+}
+
+.results-heading h2 {
+  font-size: 28px;
+  margin-bottom: 6px;
+}
+
+.results-heading p {
+  color: var(--muted);
+}
+
+/* CHAIRMAN SUMMARY */
+
+.verdict-card {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 90% 0%, rgba(74,222,128,.10), transparent 35%),
+    linear-gradient(145deg, #0f1a27, #0a121c);
+  border: 1px solid rgba(74,222,128,.38);
+  border-radius: 18px;
+  padding: 28px;
+  margin-bottom: 20px;
+}
+
+.verdict-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.verdict-label {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  margin-bottom: 8px;
+}
+
+.verdict-card h3 {
+  font-size: 34px;
+  letter-spacing: -1px;
+}
+
+.verdict-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(74,222,128,.45);
+  background: rgba(74,222,128,.08);
+  color: var(--green);
+  padding: 9px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.chairman-summary {
+  color: #cbd5e1;
+  line-height: 1.7;
+  font-size: 15px;
+  max-width: 1000px;
+  white-space: pre-line;
+}
+
+.summary-heading {
+  color: white;
+  font-weight: 800;
+  margin-top: 18px;
+  margin-bottom: 6px;
+}
+
+/* RESULT CARDS */
+
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.result-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 245px;
+  background: linear-gradient(145deg, #0d1724, #0a121d);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 21px;
+}
+
+.result-card-top {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.result-card h3 {
+  font-size: 17px;
+  margin-bottom: 3px;
+}
+
+.result-preview {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 18px;
+  white-space: pre-line;
+}
+
+.view-btn {
+  margin-top: auto;
+  width: 100%;
+  background: #111e2e;
+  border: 1px solid #294058;
+  color: #e5edf5;
+  border-radius: 9px;
+  padding: 11px 13px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.view-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* NEW ANALYSIS */
+
+.new-analysis {
+  display: flex;
+  justify-content: center;
+  margin-top: 28px;
+}
+
+.secondary-btn {
+  background: transparent;
+  color: #d7e0e9;
+  border: 1px solid #34475d;
+  border-radius: 10px;
+  padding: 12px 19px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.secondary-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+}
+
+/* MODAL */
+
+.modal-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(0,0,0,.72);
+  backdrop-filter: blur(7px);
+  padding: 25px;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-backdrop.open {
+  display: flex;
+}
+
+.modal {
+  width: min(800px, 100%);
+  max-height: 85vh;
+  background: #0c1420;
+  border: 1px solid #30445b;
+  border-radius: 18px;
+  box-shadow: 0 30px 100px rgba(0,0,0,.55);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modal-header {
+  padding: 20px 22px;
+  border-bottom: 1px solid #23354a;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.modal-header h2 {
+  font-size: 19px;
+}
+
+.modal-role {
+  color: var(--green);
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 36px;
+  border-radius: 9px;
+  border: 1px solid #31445a;
+  background: #111c29;
+  color: white;
+  cursor: pointer;
+  font-size: 21px;
+}
+
+.close-btn:hover {
+  border-color: var(--green);
+}
+
+.modal-content {
+  overflow-y: auto;
+  padding: 24px;
+  color: #cbd5e1;
+  font-size: 15px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+}
+
+/* ERROR */
+
+.error-box {
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid #7f1d1d;
+  background: rgba(127,29,29,.18);
+  color: #fecaca;
+  display: none;
+  line-height: 1.5;
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 900px) {
+  .board,
+  .result-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .container {
+    padding-top: 45px;
+  }
+}
+
+@media (max-width: 620px) {
+  .header {
+    height: 68px;
+    padding: 0 18px;
+  }
+
+  .logo {
+    font-size: 20px;
+  }
+
+  .status {
+    font-size: 12px;
+  }
+
+  .container {
+    width: min(100% - 26px, 1250px);
+    padding: 38px 0 60px;
+  }
+
+  .hero {
+    margin-bottom: 45px;
+  }
+
+  .hero h1 {
+    font-size: 42px;
+    letter-spacing: -2px;
+  }
+
+  .hero p {
+    font-size: 16px;
+  }
+
+  .board,
+  .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .input-box,
+  .verdict-card {
+    padding: 20px;
+  }
+
+  .verdict-top {
+    flex-direction: column;
+  }
+
+  .verdict-card h3 {
+    font-size: 29px;
+  }
+
+  .modal-backdrop {
+    padding: 12px;
+  }
+
+  .modal {
+    max-height: 90vh;
+  }
+}
+</style>
 </head>
 
 <body>
 
-  <header class="header">
-    <div class="logo">AI <span>Boardroom</span></div>
+<header class="header">
+  <div class="logo">AI <span>Boardroom</span></div>
 
-    <div class="status">
-      <div class="status-dot"></div>
-      Boardroom Online
-    </div>
-  </header>
+  <div class="status">
+    <div class="status-dot"></div>
+    Boardroom Online
+  </div>
+</header>
 
-  <main class="container">
+<main class="container">
 
-    <section class="hero">
-      <div class="eyebrow">AI Business Intelligence</div>
+  <section class="hero">
+    <div class="eyebrow">AI BUSINESS INTELLIGENCE</div>
+    <h1>Put your idea in front of the board.</h1>
+    <p>
+      Six AI executives analyze your business from strategy, market,
+      technology, finance, risk, and leadership perspectives.
+    </p>
+  </section>
 
-      <h1>Put your idea in front of the board.</h1>
+  <section>
+    <h2 class="section-title">Your Executive Team</h2>
+    <p class="section-subtitle">
+      Each agent analyzes the opportunity from a different perspective.
+    </p>
 
-      <p>
-        Six AI executives analyze your business from strategy, market,
-        technology, finance, risk, and leadership perspectives.
-      </p>
-    </section>
+    <div class="board">
 
-    <div class="section-title">
-      <h2>Your Executive Team</h2>
-      <p>Each agent analyzes the opportunity from a different perspective.</p>
-    </div>
-
-    <section class="board">
-
-      <div class="agent" id="ceo-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">♟</div>
           <div>
@@ -460,16 +652,10 @@
             <div class="role">Business Strategy</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Builds the strategy, identifies opportunities, and evaluates the overall business.
-        </p>
-
-        <div class="agent-response" id="ceo-response"></div>
+        <p>Builds the strategy, identifies opportunities, and evaluates the overall business.</p>
       </div>
 
-
-      <div class="agent" id="market-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">⌕</div>
           <div>
@@ -477,16 +663,10 @@
             <div class="role">Market Intelligence</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Investigates customers, competition, demand, trends, and market opportunity.
-        </p>
-
-        <div class="agent-response" id="market-response"></div>
+        <p>Investigates customers, competition, demand, trends, and market opportunity.</p>
       </div>
 
-
-      <div class="agent" id="devil-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">⚔</div>
           <div>
@@ -494,16 +674,10 @@
             <div class="role">Red Team</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Challenges assumptions and searches for reasons the business could fail.
-        </p>
-
-        <div class="agent-response" id="devil-response"></div>
+        <p>Challenges assumptions and searches for reasons the business could fail.</p>
       </div>
 
-
-      <div class="agent" id="cfo-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">$</div>
           <div>
@@ -511,16 +685,10 @@
             <div class="role">Financial Analysis</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Tests pricing, margins, acquisition costs, revenue potential, and scalability.
-        </p>
-
-        <div class="agent-response" id="cfo-response"></div>
+        <p>Tests pricing, margins, acquisition costs, revenue potential, and scalability.</p>
       </div>
 
-
-      <div class="agent" id="cto-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">⚙</div>
           <div>
@@ -528,16 +696,10 @@
             <div class="role">Technology</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Evaluates technical feasibility, AI architecture, development requirements, and costs.
-        </p>
-
-        <div class="agent-response" id="cto-response"></div>
+        <p>Evaluates technical feasibility, AI architecture, development requirements, and costs.</p>
       </div>
 
-
-      <div class="agent" id="chairman-card">
+      <div class="agent">
         <div class="agent-header">
           <div class="icon">◆</div>
           <div>
@@ -545,200 +707,372 @@
             <div class="role">Final Synthesis</div>
           </div>
         </div>
-
-        <p class="agent-description">
-          Combines the debate into a final verdict, major risks, and next actions.
-        </p>
-
-        <div class="agent-response" id="chairman-response"></div>
+        <p>Combines the debate into a final verdict, major risks, and recommended next actions.</p>
       </div>
 
-    </section>
+    </div>
+  </section>
 
+  <section class="input-box" id="inputSection">
+    <h2>Bring an idea to the Boardroom</h2>
+    <p>
+      Describe the business, product, or opportunity you want the executive team to investigate.
+    </p>
 
-    <section class="input-box">
+    <textarea
+      id="idea"
+      placeholder="Example: An AI platform that helps college students find apartments based on budget, distance, reviews, and total monthly cost."
+    ></textarea>
 
-      <h2>Bring an idea to the Boardroom</h2>
+    <button class="primary-btn" id="startButton" onclick="startBoardroom()">
+      Start Boardroom Debate
+    </button>
 
-      <p>
-        Describe the business, problem, or opportunity you want the executive team to investigate.
-      </p>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      The executive team is analyzing your idea...
+    </div>
 
-      <textarea
-        id="idea"
-        placeholder="Example: A platform that helps college students find affordable off-campus apartments near their university."
-      ></textarea>
+    <div class="error-box" id="errorBox"></div>
+  </section>
 
-      <div class="action-row">
-        <button id="start-button" onclick="startBoardroom()">
-          Start Boardroom Debate
-        </button>
+  <section id="results">
 
-        <span class="loading-text" id="loading-text">
-          The executive team is analyzing your idea. This may take a few minutes.
-        </span>
-      </div>
+    <div class="results-heading">
+      <h2>Boardroom Decision</h2>
+      <p>The executive team has completed its analysis.</p>
+    </div>
 
-      <div class="error-box" id="error-box"></div>
-
-    </section>
-
-
-    <section id="result">
-
-      <div class="result-header">
+    <div class="verdict-card">
+      <div class="verdict-top">
         <div>
-          <div class="result-label">Chairman's conclusion</div>
-          <h2>Final Boardroom Decision</h2>
+          <div class="verdict-label">CHAIRMAN'S VERDICT</div>
+          <h3 id="verdictText">Decision</h3>
         </div>
 
-        <div class="decision-badge">FINAL ANALYSIS</div>
+        <div class="verdict-badge" id="verdictBadge">
+          FINAL DECISION
+        </div>
       </div>
 
-      <div class="result-content" id="result-content"></div>
+      <div class="chairman-summary" id="chairmanSummary"></div>
+    </div>
 
-    </section>
+    <h2 class="section-title">Executive Analysis</h2>
+    <p class="section-subtitle">
+      Review each executive's perspective or open the complete report.
+    </p>
 
-  </main>
+    <div class="result-grid" id="resultGrid"></div>
 
+    <div class="new-analysis">
+      <button class="secondary-btn" onclick="newAnalysis()">
+        Analyze Another Idea
+      </button>
+    </div>
 
-  <script>
+  </section>
 
-    const agents = [
-      "ceo",
-      "market",
-      "devil",
-      "cfo",
-      "cto",
-      "chairman"
-    ];
+</main>
 
+<div class="modal-backdrop" id="modalBackdrop" onclick="backdropClose(event)">
+  <div class="modal">
 
-    function resetBoardroom() {
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div class="icon" id="modalIcon">◆</div>
 
-      agents.forEach((agent) => {
+        <div>
+          <h2 id="modalTitle">Executive Analysis</h2>
+          <div class="modal-role" id="modalRole"></div>
+        </div>
+      </div>
 
-        const card = document.getElementById(`${agent}-card`);
-        const response = document.getElementById(`${agent}-response`);
+      <button class="close-btn" onclick="closeModal()" aria-label="Close">
+        ×
+      </button>
+    </div>
 
-        card.classList.remove("has-response", "active");
-        response.textContent = "";
+    <div class="modal-content" id="modalContent"></div>
 
+  </div>
+</div>
+
+<script>
+let latestAgents = {};
+
+const agentInfo = {
+  ceo: {
+    name: "CEO / Strategist",
+    role: "Business Strategy",
+    icon: "♟"
+  },
+  market: {
+    name: "Market Researcher",
+    role: "Market Intelligence",
+    icon: "⌕"
+  },
+  devil: {
+    name: "Devil's Advocate",
+    role: "Red Team",
+    icon: "⚔"
+  },
+  cfo: {
+    name: "CFO",
+    role: "Financial Analysis",
+    icon: "$"
+  },
+  cto: {
+    name: "CTO",
+    role: "Technology",
+    icon: "⚙"
+  },
+  chairman: {
+    name: "Chairman",
+    role: "Final Synthesis",
+    icon: "◆"
+  }
+};
+
+function cleanText(text) {
+  return String(text || "")
+    .replace(/\*\*/g, "")
+    .replace(/###/g, "")
+    .trim();
+}
+
+function getVerdict(text) {
+  const upper = String(text || "").toUpperCase();
+
+  const verdicts = [
+    "TEST FIRST",
+    "PURSUE",
+    "PIVOT",
+    "PASS"
+  ];
+
+  for (const verdict of verdicts) {
+    if (upper.includes(verdict)) {
+      return verdict;
+    }
+  }
+
+  return "BOARD DECISION";
+}
+
+function getChairmanSummary(text) {
+  const cleaned = cleanText(text);
+
+  const whyMatch = cleaned.match(
+    /(?:^|\n)\s*(?:2\.\s*)?WHY\s*:?\s*([\s\S]*?)(?=\n\s*(?:3\.\s*)?BIGGEST RISKS|\n\s*(?:3\.\s*)?RISKS|$)/i
+  );
+
+  const nextMatch = cleaned.match(
+    /(?:^|\n)\s*(?:4\.\s*)?NEXT STEPS\s*:?\s*([\s\S]*?)$/i
+  );
+
+  let output = "";
+
+  if (whyMatch && whyMatch[1].trim()) {
+    output += "WHY\n" + whyMatch[1].trim();
+  }
+
+  if (nextMatch && nextMatch[1].trim()) {
+    if (output) output += "\n\n";
+    output += "NEXT STEPS\n" + nextMatch[1].trim();
+  }
+
+  if (!output) {
+    const withoutVerdict = cleaned
+      .replace(/(?:1\.\s*)?VERDICT\s*:?\s*(PURSUE|TEST FIRST|PIVOT|PASS)/i, "")
+      .trim();
+
+    return withoutVerdict.slice(0, 1100);
+  }
+
+  return output;
+}
+
+function formatChairmanSummary(text) {
+  const lines = String(text || "").split("\n");
+
+  return lines.map(line => {
+    const trimmed = line.trim();
+
+    if (trimmed === "WHY" || trimmed === "NEXT STEPS") {
+      return `<div class="summary-heading">${escapeHtml(trimmed)}</div>`;
+    }
+
+    return escapeHtml(line);
+  }).join("\n");
+}
+
+function escapeHtml(text) {
+  const div = document.createElement("div");
+  div.textContent = String(text || "");
+  return div.innerHTML;
+}
+
+function createResultCards(agents) {
+  const grid = document.getElementById("resultGrid");
+  grid.innerHTML = "";
+
+  const order = ["ceo", "market", "devil", "cfo", "cto", "chairman"];
+
+  order.forEach(key => {
+    const info = agentInfo[key];
+    const fullText = cleanText(agents[key]);
+
+    const card = document.createElement("div");
+    card.className = "result-card";
+
+    card.innerHTML = `
+      <div class="result-card-top">
+        <div class="icon">${info.icon}</div>
+
+        <div>
+          <h3>${info.name}</h3>
+          <div class="role">${info.role}</div>
+        </div>
+      </div>
+
+      <div class="result-preview">${escapeHtml(fullText)}</div>
+
+      <button class="view-btn" onclick="openModal('${key}')">
+        View Full Analysis →
+      </button>
+    `;
+
+    grid.appendChild(card);
+  });
+}
+
+function openModal(key) {
+  const info = agentInfo[key];
+  const text = cleanText(latestAgents[key]);
+
+  document.getElementById("modalIcon").textContent = info.icon;
+  document.getElementById("modalTitle").textContent = info.name;
+  document.getElementById("modalRole").textContent = info.role;
+  document.getElementById("modalContent").textContent = text;
+
+  document.getElementById("modalBackdrop").classList.add("open");
+  document.body.style.overflow = "hidden";
+}
+
+function closeModal() {
+  document.getElementById("modalBackdrop").classList.remove("open");
+  document.body.style.overflow = "";
+}
+
+function backdropClose(event) {
+  if (event.target.id === "modalBackdrop") {
+    closeModal();
+  }
+}
+
+document.addEventListener("keydown", event => {
+  if (event.key === "Escape") {
+    closeModal();
+  }
+});
+
+async function startBoardroom() {
+  const ideaInput = document.getElementById("idea");
+  const idea = ideaInput.value.trim();
+
+  const button = document.getElementById("startButton");
+  const loading = document.getElementById("loading");
+  const errorBox = document.getElementById("errorBox");
+  const results = document.getElementById("results");
+
+  if (!idea) {
+    errorBox.textContent = "Enter a business idea before starting the Boardroom.";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  errorBox.style.display = "none";
+  results.style.display = "none";
+
+  button.disabled = true;
+  button.textContent = "Boardroom is thinking...";
+  loading.style.display = "flex";
+
+  try {
+    const response = await fetch("/api/boardroom", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ idea })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "The Boardroom could not complete the analysis.");
+    }
+
+    if (!data.agents) {
+      throw new Error("No agent responses were returned.");
+    }
+
+    latestAgents = data.agents;
+
+    const chairman = cleanText(data.agents.chairman);
+    const verdict = getVerdict(chairman);
+    const summary = getChairmanSummary(chairman);
+
+    document.getElementById("verdictText").textContent = verdict;
+    document.getElementById("verdictBadge").textContent = verdict;
+
+    document.getElementById("chairmanSummary").innerHTML =
+      formatChairmanSummary(summary);
+
+    createResultCards(data.agents);
+
+    results.style.display = "block";
+
+    setTimeout(() => {
+      results.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
       });
+    }, 100);
 
-      document.getElementById("result").style.display = "none";
-      document.getElementById("result-content").textContent = "";
+  } catch (error) {
+    console.error(error);
 
-      const errorBox = document.getElementById("error-box");
-      errorBox.style.display = "none";
-      errorBox.textContent = "";
+    errorBox.textContent =
+      "Boardroom error: " + (error.message || "Something went wrong.");
 
-    }
+    errorBox.style.display = "block";
 
+  } finally {
+    button.disabled = false;
+    button.textContent = "Start Boardroom Debate";
+    loading.style.display = "none";
+  }
+}
 
-    function displayAgent(agent, text) {
+function newAnalysis() {
+  document.getElementById("results").style.display = "none";
+  document.getElementById("idea").value = "";
+  document.getElementById("errorBox").style.display = "none";
 
-      const card = document.getElementById(`${agent}-card`);
-      const response = document.getElementById(`${agent}-response`);
+  latestAgents = {};
 
-      if (!card || !response) return;
+  document.getElementById("inputSection").scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
 
-      response.textContent = text || "No analysis returned.";
-      card.classList.add("has-response", "active");
-
-    }
-
-
-    async function startBoardroom() {
-
-      const ideaInput = document.getElementById("idea");
-      const idea = ideaInput.value.trim();
-
-      if (!idea) {
-        alert("Please enter a business idea first.");
-        return;
-      }
-
-      const button = document.getElementById("start-button");
-      const loadingText = document.getElementById("loading-text");
-      const errorBox = document.getElementById("error-box");
-
-      resetBoardroom();
-
-      button.disabled = true;
-      button.textContent = "Boardroom is thinking...";
-      loadingText.classList.add("show");
-
-
-      try {
-
-        const response = await fetch("/api/boardroom", {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type": "application/json"
-          },
-
-          body: JSON.stringify({ idea })
-
-        });
-
-
-        const data = await response.json();
-
-
-        if (!response.ok) {
-          throw new Error(data.error || "Something went wrong.");
-        }
-
-
-        if (!data.agents) {
-          throw new Error("The Boardroom returned an invalid response.");
-        }
-
-
-        displayAgent("ceo", data.agents.ceo);
-        displayAgent("market", data.agents.market);
-        displayAgent("devil", data.agents.devil);
-        displayAgent("cfo", data.agents.cfo);
-        displayAgent("cto", data.agents.cto);
-        displayAgent("chairman", data.agents.chairman);
-
-
-        const result = document.getElementById("result");
-        const resultContent = document.getElementById("result-content");
-
-        resultContent.textContent =
-          data.agents.chairman || "No final decision returned.";
-
-        result.style.display = "block";
-
-
-        result.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-
-
-      } catch (error) {
-
-        errorBox.textContent =
-          "Boardroom error: " + error.message;
-
-        errorBox.style.display = "block";
-
-      } finally {
-
-        button.disabled = false;
-        button.textContent = "Start Boardroom Debate";
-        loadingText.classList.remove("show");
-
-      }
-
-    }
-
-  </script>
+  setTimeout(() => {
+    document.getElementById("idea").focus();
+  }, 500);
+}
+</script>
 
 </body>
 </html>
