@@ -662,6 +662,30 @@
       }
     }
 
+
+
+    /* Account controls */
+    .header-right { display:flex; align-items:center; gap:14px; }
+    .auth-actions { display:flex; align-items:center; gap:8px; }
+    .auth-btn { border:1px solid #314861; background:#102033; color:var(--text); border-radius:9px; padding:9px 13px; font-weight:800; cursor:pointer; }
+    .auth-btn.primary { background:var(--green); color:#06120b; border-color:var(--green); }
+    .auth-user { color:var(--muted); font-size:13px; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .auth-modal { display:none; position:fixed; inset:0; z-index:1200; background:rgba(0,0,0,.78); padding:24px; align-items:center; justify-content:center; }
+    .auth-modal.open { display:flex; }
+    .auth-box { width:min(430px,100%); background:#0d1724; border:1px solid #30445c; border-radius:18px; padding:26px; box-shadow:0 30px 80px rgba(0,0,0,.5); }
+    .auth-box h2 { margin-bottom:7px; }
+    .auth-box > p { color:var(--muted); line-height:1.5; margin-bottom:20px; }
+    .auth-field { margin-bottom:13px; }
+    .auth-field label { display:block; color:#c5d0de; font-size:13px; font-weight:800; margin-bottom:7px; }
+    .auth-field input { width:100%; border:1px solid #30445d; border-radius:10px; background:#080e17; color:white; padding:13px 14px; font:inherit; outline:none; }
+    .auth-field input:focus { border-color:var(--green); box-shadow:0 0 0 3px rgba(69,229,138,.07); }
+    .auth-submit { width:100%; margin-top:5px; }
+    .auth-message { min-height:20px; margin-top:13px; color:var(--muted); font-size:13px; line-height:1.45; }
+    .auth-message.error { color:#ff9aa9; }
+    .auth-switch { margin-top:16px; color:var(--muted); font-size:13px; text-align:center; }
+    .auth-switch button { background:none; border:0; color:var(--green); font-weight:800; cursor:pointer; }
+    @media (max-width:650px) { .status { display:none; } .header-right { gap:8px; } .auth-user { display:none; } .auth-btn { padding:8px 10px; } }
+
   </style>
 </head>
 
@@ -670,9 +694,17 @@
 <header class="header">
   <div class="logo">AI <span>Boardroom</span></div>
 
-  <div class="status">
-    <span class="status-dot"></span>
-    Boardroom Online
+  <div class="header-right">
+    <div class="status">
+      <span class="status-dot"></span>
+      Boardroom Online
+    </div>
+    <div class="auth-actions" id="authActions">
+      <button class="auth-btn" id="loginButton" onclick="openAuthModal('login')">Log In</button>
+      <button class="auth-btn primary" id="signupButton" onclick="openAuthModal('signup')">Sign Up</button>
+      <span class="auth-user" id="authUser" style="display:none"></span>
+      <button class="auth-btn" id="logoutButton" style="display:none" onclick="logoutUser()">Log Out</button>
+    </div>
   </div>
 </header>
 
@@ -877,6 +909,30 @@
   </section>
 
 </main>
+
+<div class="auth-modal" id="authModal" onclick="authBackgroundClose(event)">
+  <div class="auth-box">
+    <div class="modal-top">
+      <div>
+        <div class="role" id="authEyebrow">AI BOARDROOM ACCOUNT</div>
+        <h2 id="authTitle">Log In</h2>
+      </div>
+      <button class="close-btn" onclick="closeAuthModal()">×</button>
+    </div>
+    <p id="authDescription">Log in to your AI Boardroom account.</p>
+    <div class="auth-field">
+      <label for="authEmail">Email</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+    </div>
+    <div class="auth-field">
+      <label for="authPassword">Password</label>
+      <input id="authPassword" type="password" autocomplete="current-password" placeholder="At least 6 characters" />
+    </div>
+    <button class="primary-btn auth-submit" id="authSubmitButton" onclick="submitAuth()">Log In</button>
+    <div class="auth-message" id="authMessage"></div>
+    <div class="auth-switch" id="authSwitch"></div>
+  </div>
+</div>
 
 <div class="modal" id="analysisModal" onclick="modalBackgroundClose(event)">
   <div class="modal-box">
@@ -1423,6 +1479,136 @@ saveBoardroomReport(idea, data.agents);
     }, 400);
   }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script>
+  const SUPABASE_URL = "https://xtfkrotbzgkbklnsczqm.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_nSiwcDRBBq2a5qAoE2-uvQ_3Te2ZxM1";
+
+  const supabaseClient = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_PUBLISHABLE_KEY
+  );
+
+  let authMode = "login";
+
+  function openAuthModal(mode = "login") {
+    authMode = mode;
+    document.getElementById("authModal").classList.add("open");
+    document.body.style.overflow = "hidden";
+    document.getElementById("authMessage").textContent = "";
+    document.getElementById("authMessage").className = "auth-message";
+    updateAuthModal();
+    setTimeout(() => document.getElementById("authEmail").focus(), 50);
+  }
+
+  function closeAuthModal() {
+    document.getElementById("authModal").classList.remove("open");
+    document.body.style.overflow = "";
+  }
+
+  function authBackgroundClose(event) {
+    if (event.target.id === "authModal") closeAuthModal();
+  }
+
+  function updateAuthModal() {
+    const signup = authMode === "signup";
+    document.getElementById("authTitle").textContent = signup ? "Create Account" : "Log In";
+    document.getElementById("authDescription").textContent = signup
+      ? "Create an account so your Boardroom reports can be connected to you."
+      : "Log in to your AI Boardroom account.";
+    document.getElementById("authSubmitButton").textContent = signup ? "Sign Up" : "Log In";
+    document.getElementById("authPassword").autocomplete = signup ? "new-password" : "current-password";
+    document.getElementById("authSwitch").innerHTML = signup
+      ? 'Already have an account? <button type="button" onclick="switchAuthMode(\'login\')">Log In</button>'
+      : 'Need an account? <button type="button" onclick="switchAuthMode(\'signup\')">Sign Up</button>';
+  }
+
+  function switchAuthMode(mode) {
+    authMode = mode;
+    document.getElementById("authMessage").textContent = "";
+    document.getElementById("authMessage").className = "auth-message";
+    updateAuthModal();
+  }
+
+  async function submitAuth() {
+    const email = document.getElementById("authEmail").value.trim();
+    const password = document.getElementById("authPassword").value;
+    const message = document.getElementById("authMessage");
+    const button = document.getElementById("authSubmitButton");
+
+    message.className = "auth-message";
+    message.textContent = "";
+
+    if (!email || !password) {
+      message.className = "auth-message error";
+      message.textContent = "Enter your email and password.";
+      return;
+    }
+
+    button.disabled = true;
+    button.textContent = authMode === "signup" ? "Creating account..." : "Logging in...";
+
+    try {
+      if (authMode === "signup") {
+        const { data, error } = await supabaseClient.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: window.location.origin }
+        });
+        if (error) throw error;
+
+        if (data.session) {
+          message.textContent = "Account created. You are logged in.";
+          setTimeout(closeAuthModal, 700);
+        } else {
+          message.textContent = "Account created. Check your email and click the confirmation link, then log in.";
+        }
+      } else {
+        const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+        closeAuthModal();
+      }
+    } catch (error) {
+      message.className = "auth-message error";
+      message.textContent = error?.message || "Authentication failed.";
+    } finally {
+      button.disabled = false;
+      updateAuthModal();
+    }
+  }
+
+  async function logoutUser() {
+    const { error } = await supabaseClient.auth.signOut();
+    if (error) alert("Log out failed: " + error.message);
+  }
+
+  function updateAuthHeader(session) {
+    const user = session?.user || null;
+    document.getElementById("loginButton").style.display = user ? "none" : "inline-block";
+    document.getElementById("signupButton").style.display = user ? "none" : "inline-block";
+    document.getElementById("logoutButton").style.display = user ? "inline-block" : "none";
+    const label = document.getElementById("authUser");
+    label.style.display = user ? "inline-block" : "none";
+    label.textContent = user?.email || "";
+  }
+
+  async function initializeAuth() {
+    const { data } = await supabaseClient.auth.getSession();
+    updateAuthHeader(data.session);
+
+    supabaseClient.auth.onAuthStateChange((_event, session) => {
+      updateAuthHeader(session);
+    });
+  }
+
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && document.getElementById("authModal")?.classList.contains("open")) {
+      closeAuthModal();
+    }
+  });
+
+  initializeAuth();
+</script>
 </body>
 </html>
