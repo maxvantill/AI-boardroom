@@ -15,7 +15,7 @@ export default async function handler(req, res) {
     const OPENROUTER_URL =
       "https://openrouter.ai/api/v1/chat/completions";
 
-    async function askAgent(model, role, instructions, context = "") {
+    async function askAgent(role, instructions, context = "") {
       const response = await fetch(OPENROUTER_URL, {
         method: "POST",
         headers: {
@@ -25,7 +25,17 @@ export default async function handler(req, res) {
           "X-Title": "AI Boardroom"
         },
         body: JSON.stringify({
-          model,
+          model: "openrouter/free",
+
+          // If the selected free model fails,
+          // OpenRouter can try another available free model.
+          models: [
+            "nvidia/nemotron-3-ultra-253b-v1:free",
+            "google/gemma-4-31b-it:free",
+            "inclusionai/ling-2.0:free",
+            "openrouter/free"
+          ],
+
           messages: [
             {
               role: "system",
@@ -38,7 +48,7 @@ ${instructions}
 Be specific.
 Separate facts from assumptions.
 Do not invent market data.
-Point out what would need to be tested in the real world.`
+Point out what needs to be tested in the real world.`
             },
             {
               role: "user",
@@ -50,8 +60,7 @@ ${idea}
 ${context}
 `
             }
-          ],
-          temperature: 0.7
+          ]
         })
       });
 
@@ -68,217 +77,171 @@ ${context}
         `${role} returned no response.`;
     }
 
-    // ==========================================
-    // ROUND 1 — INDEPENDENT BOARD MEMBERS
-    // ==========================================
-
+    // CEO
     const ceo = await askAgent(
-      "nvidia/nemotron-3-ultra-550b-a55b:free",
       "CEO / Strategist",
       `
 Develop the overall business strategy.
 
-Determine:
-- What problem is being solved?
-- Who specifically has the problem?
-- Why would they pay?
-- What could make this business meaningfully different?
-- What is the simplest version that could be launched?
-- How could it become a very large company?
-
-Do not assume the idea is good.
+Analyze:
+- The customer problem
+- Target customer
+- Why someone would pay
+- Differentiation
+- Business model
+- Scalability
+- What could make the idea fail
 `
     );
 
+    // MARKET
     const market = await askAgent(
-      "inclusionai/ling-3.0-flash-fin:free",
       "Market Researcher",
       `
 Analyze the market.
 
 Determine:
-- Who the competitors would be
-- What existing alternatives customers have
-- Whether this problem appears large enough to matter
-- What customer segment should be tested first
-- What assumptions require actual market research
-- What could make customer acquisition difficult
+- Competitors
+- Existing alternatives
+- Customer demand assumptions
+- Target market
+- Customer acquisition challenges
+- What needs real-world validation
 
 Do not invent statistics.
 `
     );
 
+    // CTO
     const cto = await askAgent(
-      "poolside/laguna-s-2.1:free",
       "CTO / Technology Officer",
       `
 Analyze technical feasibility.
 
 Determine:
-- What technology would actually be required
-- What could realistically be built by a small startup
+- Technology required
+- What can be built cheaply
 - What should NOT be built initially
-- Where AI provides a genuine advantage
-- Technical risks
-- Data, security, integration, and scalability concerns
+- Where AI actually helps
+- Security and scalability concerns
 `
     );
 
+    // CFO
     const cfo = await askAgent(
-      "nvidia/nemotron-3.5-lightning:free",
       "CFO / Financial Officer",
       `
 Attack the economics.
 
 Determine:
 - Who pays
-- Possible revenue models
+- Revenue model
 - Major costs
-- Customer acquisition challenges
+- Customer acquisition
 - Potential margins
-- Whether the economics could scale
-- What numbers must be validated before investing serious money
-
-Do not make up financial results.
+- Scalability
+- Financial assumptions that must be tested
 `
     );
 
-    // ==========================================
-    // ROUND 2 — DEVIL'S ADVOCATE
-    // ==========================================
-
+    // DEVIL'S ADVOCATE
     const debateContext = `
-Here are the other Board members' initial arguments.
-
---- CEO / STRATEGIST ---
+CEO:
 ${ceo}
 
---- MARKET RESEARCHER ---
+MARKET RESEARCHER:
 ${market}
 
---- CTO ---
+CTO:
 ${cto}
 
---- CFO ---
+CFO:
 ${cfo}
 `;
 
     const devil = await askAgent(
-      "google/gemma-4-31b-it:free",
       "Devil's Advocate / Red Team",
       `
-Your job is to try to KILL the business idea.
-
-Do not be polite.
+Try to destroy this business idea.
 
 Look for:
-- Contradictions between Board members
 - Weak assumptions
 - Fake differentiation
-- Competitive threats
+- Competition
 - Bad economics
-- Difficult customer acquisition
 - Technical problems
-- Regulatory or operational problems
+- Customer acquisition problems
 - Reasons customers may not care
-- Reasons the founder could waste months building something nobody wants
 
 Then identify:
-1. The strongest argument against the business
-2. The strongest argument for it
-3. What evidence would prove the skeptics wrong
-4. What experiment should happen before major investment
+1. Strongest argument against it
+2. Strongest argument for it
+3. Evidence needed to prove the idea
+4. The first experiment the founder should run
 `,
       debateContext
     );
 
-    // ==========================================
-    // ROUND 3 — CHAIRMAN SYNTHESIS
-    // ==========================================
-
+    // CHAIRMAN
     const fullBoardroom = `
-==============================
-CEO / STRATEGIST
-==============================
+CEO:
 ${ceo}
 
-==============================
-MARKET RESEARCHER
-==============================
+MARKET RESEARCHER:
 ${market}
 
-==============================
-CTO
-==============================
+CTO:
 ${cto}
 
-==============================
-CFO
-==============================
+CFO:
 ${cfo}
 
-==============================
-DEVIL'S ADVOCATE
-==============================
+DEVIL'S ADVOCATE:
 ${devil}
 `;
 
     const chairman = await askAgent(
-      "nvidia/nemotron-3-ultra-550b-a55b:free",
       "Chairman / Final Synthesizer",
       `
-You are the final decision-making analyst.
+Analyze the entire Boardroom debate.
 
-Do NOT simply choose whichever argument sounds best.
-
-Analyze the entire Boardroom debate and produce:
+Produce:
 
 1. EXECUTIVE VERDICT
-Explain whether the idea deserves a real-world test.
+Does this idea deserve a real-world test?
 
 2. CORE PROBLEM
-State the actual customer problem in simple language.
 
 3. TARGET CUSTOMER
-Identify the first customer segment to test.
 
 4. BUSINESS MODEL
-Explain exactly how the company could make money.
 
 5. DIFFERENTIATION
-Explain what would need to be genuinely different.
 
 6. BIGGEST RISKS
-List the five biggest ways this could fail.
 
 7. ASSUMPTION LEDGER
 Separate:
-- Things we know
-- Things we believe
-- Things we do NOT know
+- Known
+- Believed
+- Unknown
 
 8. 30-DAY VALIDATION PLAN
-Give concrete actions that can be completed before building a large product.
 
 9. KILL CRITERIA
-Explain what evidence would cause the founder to abandon or radically change the idea.
+What evidence would cause the founder to abandon or change the idea?
 
 10. REVISED BUSINESS MODEL
-If the original idea is weak, redesign it rather than simply rejecting it.
+If necessary, redesign the idea.
 
-11. FINAL BOARDROOM ACTION
-Give the single most important next action for the founder.
+11. FINAL ACTION
+Give the single most important next action.
 
-Remember:
-The Boardroom does not exist to make the founder feel good.
-It exists to find the strongest business opportunity supported by evidence.
+Do not simply agree with the founder.
+The goal is evidence, not encouragement.
 `,
       fullBoardroom
     );
-
-    // ==========================================
-    // FINAL RESPONSE
-    // ==========================================
 
     return res.status(200).json({
       success: true,
