@@ -374,8 +374,9 @@ ${firstRound}
 DEVIL'S ADVOCATE:
 
 ${devil}
-`
-    );
+`,
+"openai/gpt-5.6-luna-pro"
+);
 
     /*
       SEND RESULTS TO FRONTEND
