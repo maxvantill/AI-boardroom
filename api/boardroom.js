@@ -39,10 +39,16 @@ async function askAgent(systemPrompt, userPrompt) {
 
     const data = await response.json();
 
-    return (
-      data?.choices?.[0]?.message?.content ||
-      "No response returned by this agent."
-    );
+const answer =
+  data?.choices?.[0]?.message?.content ||
+  "No response returned by this agent.";
+
+console.log(
+  "Finished agent:",
+  systemPrompt.split("\n").find(line => line.trim()) || "Unknown agent"
+);
+
+return answer;
   } finally {
     clearTimeout(timeout);
   }
