@@ -573,40 +573,36 @@
     }
 
     .history-card {
+      width: 100%;
+      min-width: 0;
       background: linear-gradient(145deg, #0e1825, #0a131f);
       border: 1px solid var(--border);
       border-radius: 14px;
       padding: 18px;
-      display: flex;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       align-items: center;
-      justify-content: space-between;
       gap: 18px;
+      overflow: hidden;
     }
 
-   .history-copy {
-  min-width: 0;
-  overflow: hidden;
-}
-
-.history-copy strong {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.history-copy span {
-  display: block;
-  margin-top: 6px;
-}
+    .history-copy {
+      min-width: 0;
+      overflow: hidden;
+    }
 
     .history-idea {
+      max-width: 100%;
       font-weight: 800;
       font-size: 15px;
+      line-height: 1.45;
       margin-bottom: 6px;
-      white-space: nowrap;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
       overflow: hidden;
-      text-overflow: ellipsis;
     }
 
     .history-meta {
@@ -652,8 +648,8 @@
 
     @media (max-width: 650px) {
       .history-card {
+        grid-template-columns: 1fr;
         align-items: flex-start;
-        flex-direction: column;
       }
 
       .history-actions {
