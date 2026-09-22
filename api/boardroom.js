@@ -1,446 +1,395 @@
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+
+async function askAgent(systemPrompt, userPrompt) {
+  const controller = new AbortController();
+
+  // Stop an individual AI request if it takes longer than 60 seconds
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: "openrouter/free",
+        messages: [
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: userPrompt,
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(
+        `OpenRouter error ${response.status}: ${errorText}`
+      );
+    }
+
+    const data = await response.json();
+
+    return (
+      data?.choices?.[0]?.message?.content ||
+      "No response returned by this agent."
+    );
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({
-      error: "Method not allowed"
+      error: "Method not allowed",
     });
   }
 
   try {
-    const { idea } = req.body;
+    const { idea } = req.body || {};
 
     if (!idea || !idea.trim()) {
       return res.status(400).json({
-        error: "Please provide a business idea."
+        error: "Please enter a business idea.",
       });
     }
 
-    const OPENROUTER_URL =
-      "https://openrouter.ai/api/v1/chat/completions";
+    /*
+      ROUND 1
 
-    async function askAgent(role, instructions, context = "") {
-      const response = await fetch(OPENROUTER_URL, {
-        method: "POST",
+      These four agents are independent.
 
-        headers: {
-          "Authorization":
-            `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer":
-            "https://ai-boardroom-eight.vercel.app",
-          "X-Title": "AI Boardroom"
-        },
+      We intentionally start all four requests BEFORE awaiting them,
+      allowing them to run simultaneously.
+    */
 
-        body: JSON.stringify({
-          model: "openrouter/free",
+    const ceoPromise = askAgent(
+      `
+You are the CEO and Strategist in an adversarial AI Boardroom.
 
-          messages: [
-            {
-              role: "system",
-              content: `
-You are the ${role} on an elite AI Boardroom.
+Your job is NOT to automatically support the founder's idea.
 
-The founder does NOT want encouragement or agreement.
+Analyze the opportunity from a strategy and business-building perspective.
 
-Your job is to think critically and challenge assumptions.
+Focus on:
+- the customer
+- the problem
+- value proposition
+- business model
+- positioning
+- scalability
+- execution difficulty
+- potential competitive advantage
 
-${instructions}
+Clearly separate:
+- what appears to be fact
+- what is an assumption
+- what needs real-world validation
 
-IMPORTANT RULES:
+If the opportunity is weak, say so directly.
 
-- Separate facts from assumptions.
-- Never invent statistics.
-- Never pretend an assumption is proven.
-- Identify weaknesses.
-- Identify opportunities.
-- Explain what needs real-world validation.
-- Be specific and practical.
-`
-            },
-
-            {
-              role: "user",
-              content: `
-BUSINESS IDEA:
+Do not assume the founder is correct.
+`,
+      `
+Business opportunity:
 
 ${idea}
 
-${context}
-`
-            }
-          ]
-        })
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data?.error?.message ||
-          `${role} failed to respond.`
-        );
-      }
-
-      const answer =
-        data?.choices?.[0]?.message?.content;
-
-      if (!answer) {
-        throw new Error(
-          `${role} returned an empty response.`
-        );
-      }
-
-      return answer;
-    }
-
-    // ==================================================
-    // BOARD MEMBER 1 — CEO / STRATEGIST
-    // ==================================================
-
-    const ceo = await askAgent(
-      "CEO / Strategist",
-
-      `
-Analyze the business from the perspective of the founder.
-
-Answer:
-
-1. What problem is being solved?
-2. Who has this problem?
-3. How painful is the problem?
-4. Why would someone pay?
-5. What could make this company different?
-6. What would the simplest version look like?
-7. How could this potentially become a large company?
-8. What are the biggest strategic weaknesses?
-
-Do not assume the business is good.
+Give your independent Round 1 analysis.
 `
     );
 
-    // ==================================================
-    // BOARD MEMBER 2 — MARKET RESEARCHER
-    // ==================================================
-
-    const market = await askAgent(
-      "Market Researcher",
-
+    const marketPromise = askAgent(
       `
-Analyze the market.
+You are the Market Researcher in an adversarial AI Boardroom.
 
-Focus on:
+Your job is to determine whether there is evidence that a real market exists.
 
-1. Likely target customers
-2. Existing alternatives
-3. Competitors
-4. Customer behavior
-5. Possible market gaps
-6. Customer acquisition challenges
-7. What would make customers switch?
-8. What assumptions require actual market research?
+Do NOT automatically agree with the business idea.
 
-Do not invent market statistics.
-Clearly identify information that must be verified.
+Analyze:
+- target customer
+- customer pain
+- existing alternatives
+- competitors
+- market dynamics
+- willingness to pay
+- possible demand
+- barriers to adoption
+
+Separate:
+- known or likely facts
+- assumptions
+- claims that require external research
+- claims that require customer interviews or testing
+
+Be skeptical.
+
+If there is not enough evidence to support an important claim, say that clearly.
+`,
+      `
+Business opportunity:
+
+${idea}
+
+Give your independent Round 1 market analysis.
 `
     );
 
-    // ==================================================
-    // BOARD MEMBER 3 — CTO
-    // ==================================================
-
-    const cto = await askAgent(
-      "CTO / Technology Officer",
-
+    const ctoPromise = askAgent(
       `
-Analyze technical feasibility.
+You are the CTO and Technology Officer in an adversarial AI Boardroom.
 
-Determine:
+Determine whether this product can realistically be built.
 
-1. What technology is required?
-2. What can realistically be built by a small startup?
-3. Where could AI provide a real advantage?
-4. What should NOT be built initially?
-5. What integrations might be required?
-6. What security issues exist?
-7. What scalability problems could appear?
-8. What could make the technology difficult or expensive?
+Analyze:
+- MVP architecture
+- required software
+- AI requirements
+- APIs and external dependencies
+- data requirements
+- security and privacy risks
+- reliability
+- technical difficulty
+- scalability
+- estimated development complexity
 
-Focus on building the simplest useful product first.
+Distinguish between:
+- easy
+- moderate
+- difficult
+- unknown
+
+Challenge unnecessary technology.
+
+If AI does not create a meaningful advantage, say so.
+`,
+      `
+Business opportunity:
+
+${idea}
+
+Give your independent Round 1 technical analysis.
 `
     );
 
-    // ==================================================
-    // BOARD MEMBER 4 — CFO
-    // ==================================================
-
-    const cfo = await askAgent(
-      "CFO / Financial Officer",
-
+    const cfoPromise = askAgent(
       `
-Attack the business economics.
+You are the CFO and Financial Officer in an adversarial AI Boardroom.
 
-Determine:
+Your job is to attack the economics.
 
-1. Who pays?
-2. What could they pay?
-3. Possible revenue models
-4. Major costs
-5. Customer acquisition challenges
-6. Potential margins
-7. Whether the economics could scale
-8. What financial assumptions must be tested
-9. What would cause the business to lose money?
+Analyze:
+- possible pricing
+- revenue model
+- gross margins
+- customer acquisition cost
+- lifetime value
+- operating costs
+- AI/API costs
+- labor costs
+- capital requirements
+- break-even logic
+- scalability
 
-Do not invent financial results.
-Use logical assumptions and clearly label them.
+Do not invent precise numbers without explaining that they are assumptions.
+
+Identify which financial variables could kill the business.
+
+If the economics appear weak, say so directly.
+`,
+      `
+Business opportunity:
+
+${idea}
+
+Give your independent Round 1 financial analysis.
 `
     );
 
-    // ==================================================
-    // BOARD MEMBER 5 — DEVIL'S ADVOCATE
-    // ==================================================
+    /*
+      Wait for all four independent agents together.
+    */
 
-    const earlyBoardroom = `
+    const [ceo, market, cto, cfo] = await Promise.all([
+      ceoPromise,
+      marketPromise,
+      ctoPromise,
+      cfoPromise,
+    ]);
 
-==============================
-CEO / STRATEGIST
-==============================
+    /*
+      ROUND 2
 
+      Devil's Advocate receives all four independent analyses.
+    */
+
+    const firstRound = `
+CEO / Strategist:
 ${ceo}
 
-
-==============================
-MARKET RESEARCHER
-==============================
-
+MARKET RESEARCHER:
 ${market}
 
-
-==============================
-CTO
-==============================
-
+CTO:
 ${cto}
 
-
-==============================
-CFO
-==============================
-
+CFO:
 ${cfo}
 `;
 
     const devil = await askAgent(
-      "Devil's Advocate / Red Team",
-
       `
-Your job is to try to DESTROY this business idea.
+You are the Devil's Advocate and Red Team in an adversarial AI Boardroom.
 
-Do not be polite.
+Your job is to try to DESTROY the business idea.
 
-Look for:
+You are not here to be agreeable.
 
-1. Weak assumptions
-2. Fake differentiation
-3. Strong competitors
-4. Better existing alternatives
-5. Poor economics
-6. Difficult customer acquisition
-7. Technical problems
-8. Regulatory problems
-9. Operational problems
-10. Reasons customers might not care
-11. Reasons the founder could waste months building this
+Read the analyses from the other agents and attack:
+- unsupported assumptions
+- weak evidence
+- false confidence
+- market risks
+- competitive threats
+- technical weaknesses
+- regulatory problems
+- bad economics
+- customer acquisition problems
+- reasons customers may not care
+- reasons the business may fail
 
-Then answer:
+Explicitly challenge claims made by the CEO, Market Researcher, CTO and CFO when appropriate.
 
-- What is the strongest argument AGAINST this company?
-- What is the strongest argument FOR this company?
-- Which Board members are making assumptions?
-- What evidence would prove the idea is worth pursuing?
-- What experiment should happen BEFORE significant money is invested?
+Identify the 5 most dangerous assumptions.
+
+Then identify what evidence would be required to prove you wrong.
+
+Do not approve the idea simply because the other agents like it.
 `,
-      earlyBoardroom
+      `
+Business opportunity:
+
+${idea}
+
+Here are the Round 1 analyses:
+
+${firstRound}
+
+Red-team the opportunity aggressively.
+`
     );
 
-    // ==================================================
-    // BOARD MEMBER 6 — CHAIRMAN
-    // ==================================================
+    /*
+      FINAL SYNTHESIS
 
-    const completeBoardroom = `
-
-========================================
-CEO / STRATEGIST
-========================================
-
-${ceo}
-
-
-========================================
-MARKET RESEARCHER
-========================================
-
-${market}
-
-
-========================================
-CTO
-========================================
-
-${cto}
-
-
-========================================
-CFO
-========================================
-
-${cfo}
-
-
-========================================
-DEVIL'S ADVOCATE
-========================================
-
-${devil}
-`;
+      Chairman sees the complete debate.
+    */
 
     const chairman = await askAgent(
-      "Chairman / Final Synthesizer",
-
       `
-You are responsible for synthesizing the entire Boardroom.
+You are the Chairman of an adversarial AI Boardroom.
 
-Do NOT simply choose the argument that sounds best.
+You are NOT here to simply vote with the majority.
 
-Your job is to identify what is actually known versus what is speculation.
+Your job is to synthesize the debate without hiding disagreement.
 
-Produce the following:
+Evaluate the business opportunity based on the evidence presented.
 
-1. EXECUTIVE ASSESSMENT
+Organize your response into:
 
-Explain whether this idea deserves a real-world validation test.
+1. Executive Summary
 
-2. CORE CUSTOMER PROBLEM
+2. Strongest Evidence
 
-State the problem in simple language.
+3. Weakest Assumptions
 
-3. FIRST CUSTOMER
+4. Major Disagreements Between Agents
 
-Identify the specific customer segment that should be tested first.
+5. Unknowns
 
-4. BUSINESS MODEL
+6. Biggest Risks
 
-Explain exactly how the company could make money.
+7. Assumption Ledger
 
-5. DIFFERENTIATION
+For each major assumption classify it as:
+- Proven
+- Supported
+- Unproven
+- Disproven
+- Needs Testing
 
-Explain what would actually need to be different.
+8. Revised Business Model
 
-6. BIGGEST RISKS
+Improve or narrow the business based on the strongest criticisms.
 
-List the five biggest reasons this could fail.
+9. Required Experiments
 
-7. ASSUMPTION LEDGER
+Describe the cheapest real-world tests that should happen before significant money is invested.
 
-Separate:
+10. Next 90 Days
 
-KNOWN:
-Things supported by evidence or logic.
+Give the founder a practical validation plan.
 
-ASSUMED:
-Things we currently believe but have not proven.
+The goal is NOT to manufacture a huge company on paper.
 
-UNKNOWN:
-Things we need to discover.
+The goal is to determine whether the evidence is strong enough to justify spending the next 90 days testing this opportunity.
 
-8. 30-DAY VALIDATION PLAN
+If the idea should be changed substantially, say so.
 
-Give concrete actions the founder can take before building a large product.
+If the evidence is too weak, say so.
 
-9. KILL CRITERIA
-
-Explain what evidence would cause the founder to abandon, change, or redesign the idea.
-
-10. REVISED BUSINESS MODEL
-
-If the original idea is weak, redesign it.
-
-Do not protect the original idea simply because the founder proposed it.
-
-11. FINAL ACTION
-
-Give the single most important next action.
-
-The Boardroom exists to find the strongest opportunity supported by evidence.
-
-It does NOT exist to make the founder feel good.
+If a different version of the opportunity appears stronger, explain it.
 `,
-      completeBoardroom
-    );
+      `
+Business opportunity:
 
-    // ==================================================
-    // FINAL BOARDROOM REPORT
-    // ==================================================
+${idea}
 
-    const finalReport = `
-# AI BOARDROOM ANALYSIS
+ROUND 1:
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${firstRound}
 
-## 👔 CEO / STRATEGIST
-
-${ceo}
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## 📊 MARKET RESEARCHER
-
-${market}
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## ⚙️ CTO / TECHNOLOGY
-
-${cto}
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## 💰 CFO / FINANCIAL ANALYSIS
-
-${cfo}
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-## ⚔️ DEVIL'S ADVOCATE
+DEVIL'S ADVOCATE / RED TEAM:
 
 ${devil}
 
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# ♦️ CHAIRMAN'S FINAL SYNTHESIS
-
-${chairman}
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-# END OF BOARDROOM
-`;
+Produce the final Boardroom synthesis.
+`
+    );
 
     return res.status(200).json({
-      success: true,
-      response: finalReport
+      idea,
+      agents: {
+        ceo,
+        market,
+        cto,
+        cfo,
+        devil,
+        chairman,
+      },
     });
-
   } catch (error) {
+    console.error("Boardroom error:", error);
+
+    if (error?.name === "AbortError") {
+      return res.status(504).json({
+        error:
+          "An AI agent took too long to respond. Please try the Boardroom again.",
+      });
+    }
+
     return res.status(500).json({
-      error:
-        error?.message ||
-        "The AI Boardroom encountered an unexpected error."
+      error: error?.message || "Boardroom failed.",
     });
   }
 }
