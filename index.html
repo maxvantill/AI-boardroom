@@ -542,6 +542,117 @@
         padding: 21px;
       }
     }
+
+    /* Previous Boardroom Reports */
+    .history-section {
+      max-width: 1000px;
+      margin: 34px auto 0;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: end;
+      gap: 18px;
+      margin-bottom: 16px;
+    }
+
+    .history-header h2 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .history-header p {
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .history-card {
+      background: linear-gradient(145deg, #0e1825, #0a131f);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .history-copy {
+      min-width: 0;
+    }
+
+    .history-idea {
+      font-weight: 800;
+      font-size: 15px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .history-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .history-btn,
+    .delete-btn {
+      border-radius: 8px;
+      padding: 9px 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    .history-btn {
+      border: 1px solid #314861;
+      background: #102033;
+      color: var(--text);
+    }
+
+    .delete-btn {
+      border: 1px solid #57313a;
+      background: transparent;
+      color: #ff9aa9;
+    }
+
+    .empty-history {
+      color: var(--muted);
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+      padding: 18px;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    @media (max-width: 650px) {
+      .history-card {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .history-actions {
+        width: 100%;
+      }
+
+      .history-btn,
+      .delete-btn {
+        flex: 1;
+      }
+    }
+
   </style>
 </head>
 
@@ -686,6 +797,17 @@
       >
         Start Boardroom Debate
       </button>
+    </section>
+
+
+    <section class="history-section" id="historySection">
+      <div class="history-header">
+        <div>
+          <h2>Previous Boardroom Reports</h2>
+          <p>Your most recent analyses are saved on this device.</p>
+        </div>
+      </div>
+      <div class="history-list" id="historyList"></div>
     </section>
 
   </div>
@@ -1116,6 +1238,108 @@ function saveBoardroomReport(idea, agents) {
     console.error("Could not save Boardroom report:", error);
   }
 }
+
+  function getBoardroomReports() {
+    try {
+      return JSON.parse(localStorage.getItem("aiBoardroomReports") || "[]");
+    } catch (error) {
+      console.error("Could not load Boardroom reports:", error);
+      return [];
+    }
+  }
+
+  function formatReportDate(dateString) {
+    const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+    return date.toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit"
+    });
+  }
+
+  function renderReportHistory() {
+    const list = document.getElementById("historyList");
+    if (!list) return;
+
+    const reports = getBoardroomReports();
+    list.innerHTML = "";
+
+    if (!reports.length) {
+      const empty = document.createElement("div");
+      empty.className = "empty-history";
+      empty.textContent = "No saved reports yet. Run your first Boardroom debate above.";
+      list.appendChild(empty);
+      return;
+    }
+
+    reports.forEach(report => {
+      const card = document.createElement("div");
+      card.className = "history-card";
+
+      const copy = document.createElement("div");
+      copy.className = "history-copy";
+
+      const idea = document.createElement("div");
+      idea.className = "history-idea";
+      idea.textContent = report.idea || "Untitled business idea";
+
+      const meta = document.createElement("div");
+      meta.className = "history-meta";
+      const verdict = extractVerdict(report.agents?.chairman || "");
+      meta.textContent = `${formatReportDate(report.createdAt)} • ${verdict}`;
+
+      copy.appendChild(idea);
+      copy.appendChild(meta);
+
+      const actions = document.createElement("div");
+      actions.className = "history-actions";
+
+      const view = document.createElement("button");
+      view.className = "history-btn";
+      view.textContent = "View Report";
+      view.onclick = () => openSavedReport(report.id);
+
+      const remove = document.createElement("button");
+      remove.className = "delete-btn";
+      remove.textContent = "Delete";
+      remove.onclick = () => deleteSavedReport(report.id);
+
+      actions.appendChild(view);
+      actions.appendChild(remove);
+      card.appendChild(copy);
+      card.appendChild(actions);
+      list.appendChild(card);
+    });
+  }
+
+  function openSavedReport(id) {
+    const report = getBoardroomReports().find(item => item.id === id);
+    if (!report || !report.agents) {
+      alert("This saved report could not be opened.");
+      return;
+    }
+
+    renderChairman(report.agents.chairman || "");
+    renderAnalysisCards(report.agents);
+
+    document.getElementById("landing").style.display = "none";
+    document.getElementById("results").style.display = "block";
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth"
+    });
+  }
+
+  function deleteSavedReport(id) {
+    const reports = getBoardroomReports().filter(item => item.id !== id);
+    localStorage.setItem("aiBoardroomReports", JSON.stringify(reports));
+    renderReportHistory();
+  }
+
   async function startBoardroom() {
     const ideaInput = document.getElementById("idea");
     const idea = ideaInput.value.trim();
@@ -1156,6 +1380,7 @@ function saveBoardroomReport(idea, agents) {
       renderChairman(data.agents.chairman || "");
       renderAnalysisCards(data.agents);
 saveBoardroomReport(idea, data.agents);
+      renderReportHistory();
       document.getElementById("landing").style.display = "none";
       document.getElementById("results").style.display = "block";
 
@@ -1172,6 +1397,8 @@ saveBoardroomReport(idea, data.agents);
       button.textContent = "Start Boardroom Debate";
     }
   }
+
+  document.addEventListener("DOMContentLoaded", renderReportHistory);
 
   function analyzeAnother() {
     document.getElementById("results").style.display = "none";
