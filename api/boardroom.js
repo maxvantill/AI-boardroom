@@ -1,6 +1,7 @@
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 
 async function askAgent(systemPrompt, userPrompt) {
+  console.log("Starting agent:", systemPrompt.split("\n").find(line => line.trim()) || "Unknown agent");
   const controller = new AbortController();
 
   // Stop an individual AI request if it takes longer than 60 seconds
