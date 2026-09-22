@@ -1,6 +1,8 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   try {
@@ -18,38 +20,43 @@ export default async function handler(req, res) {
     async function askAgent(role, instructions, context = "") {
       const response = await fetch(OPENROUTER_URL, {
         method: "POST",
+
         headers: {
-          "Authorization": `Bearer ${process.env.OPENROUTER_API_KEY}`,
+          "Authorization":
+            `Bearer ${process.env.OPENROUTER_API_KEY}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://ai-boardroom-eight.vercel.app",
+          "HTTP-Referer":
+            "https://ai-boardroom-eight.vercel.app",
           "X-Title": "AI Boardroom"
         },
+
         body: JSON.stringify({
           model: "openrouter/free",
-
-          // If the selected free model fails,
-          // OpenRouter can try another available free model.
-          models: [
-            "nvidia/nemotron-3-ultra-253b-v1:free",
-            "google/gemma-4-31b-it:free",
-            "inclusionai/ling-2.0:free",
-            "openrouter/free"
-          ],
 
           messages: [
             {
               role: "system",
-              content: `You are the ${role} on an elite AI Boardroom.
+              content: `
+You are the ${role} on an elite AI Boardroom.
 
-Your job is to challenge assumptions rather than blindly agree.
+The founder does NOT want encouragement or agreement.
+
+Your job is to think critically and challenge assumptions.
 
 ${instructions}
 
-Be specific.
-Separate facts from assumptions.
-Do not invent market data.
-Point out what needs to be tested in the real world.`
+IMPORTANT RULES:
+
+- Separate facts from assumptions.
+- Never invent statistics.
+- Never pretend an assumption is proven.
+- Identify weaknesses.
+- Identify opportunities.
+- Explain what needs real-world validation.
+- Be specific and practical.
+`
             },
+
             {
               role: "user",
               content: `
@@ -73,220 +80,367 @@ ${context}
         );
       }
 
-      return data.choices?.[0]?.message?.content ||
-        `${role} returned no response.`;
+      const answer =
+        data?.choices?.[0]?.message?.content;
+
+      if (!answer) {
+        throw new Error(
+          `${role} returned an empty response.`
+        );
+      }
+
+      return answer;
     }
 
-    // CEO
+    // ==================================================
+    // BOARD MEMBER 1 — CEO / STRATEGIST
+    // ==================================================
+
     const ceo = await askAgent(
       "CEO / Strategist",
-      `
-Develop the overall business strategy.
 
-Analyze:
-- The customer problem
-- Target customer
-- Why someone would pay
-- Differentiation
-- Business model
-- Scalability
-- What could make the idea fail
+      `
+Analyze the business from the perspective of the founder.
+
+Answer:
+
+1. What problem is being solved?
+2. Who has this problem?
+3. How painful is the problem?
+4. Why would someone pay?
+5. What could make this company different?
+6. What would the simplest version look like?
+7. How could this potentially become a large company?
+8. What are the biggest strategic weaknesses?
+
+Do not assume the business is good.
 `
     );
 
-    // MARKET
+    // ==================================================
+    // BOARD MEMBER 2 — MARKET RESEARCHER
+    // ==================================================
+
     const market = await askAgent(
       "Market Researcher",
+
       `
 Analyze the market.
 
-Determine:
-- Competitors
-- Existing alternatives
-- Customer demand assumptions
-- Target market
-- Customer acquisition challenges
-- What needs real-world validation
+Focus on:
 
-Do not invent statistics.
+1. Likely target customers
+2. Existing alternatives
+3. Competitors
+4. Customer behavior
+5. Possible market gaps
+6. Customer acquisition challenges
+7. What would make customers switch?
+8. What assumptions require actual market research?
+
+Do not invent market statistics.
+Clearly identify information that must be verified.
 `
     );
 
-    // CTO
+    // ==================================================
+    // BOARD MEMBER 3 — CTO
+    // ==================================================
+
     const cto = await askAgent(
       "CTO / Technology Officer",
+
       `
 Analyze technical feasibility.
 
 Determine:
-- Technology required
-- What can be built cheaply
-- What should NOT be built initially
-- Where AI actually helps
-- Security and scalability concerns
+
+1. What technology is required?
+2. What can realistically be built by a small startup?
+3. Where could AI provide a real advantage?
+4. What should NOT be built initially?
+5. What integrations might be required?
+6. What security issues exist?
+7. What scalability problems could appear?
+8. What could make the technology difficult or expensive?
+
+Focus on building the simplest useful product first.
 `
     );
 
-    // CFO
+    // ==================================================
+    // BOARD MEMBER 4 — CFO
+    // ==================================================
+
     const cfo = await askAgent(
       "CFO / Financial Officer",
+
       `
-Attack the economics.
+Attack the business economics.
 
 Determine:
-- Who pays
-- Revenue model
-- Major costs
-- Customer acquisition
-- Potential margins
-- Scalability
-- Financial assumptions that must be tested
+
+1. Who pays?
+2. What could they pay?
+3. Possible revenue models
+4. Major costs
+5. Customer acquisition challenges
+6. Potential margins
+7. Whether the economics could scale
+8. What financial assumptions must be tested
+9. What would cause the business to lose money?
+
+Do not invent financial results.
+Use logical assumptions and clearly label them.
 `
     );
 
-    // DEVIL'S ADVOCATE
-    const debateContext = `
-CEO:
+    // ==================================================
+    // BOARD MEMBER 5 — DEVIL'S ADVOCATE
+    // ==================================================
+
+    const earlyBoardroom = `
+
+==============================
+CEO / STRATEGIST
+==============================
+
 ${ceo}
 
-MARKET RESEARCHER:
+
+==============================
+MARKET RESEARCHER
+==============================
+
 ${market}
 
-CTO:
+
+==============================
+CTO
+==============================
+
 ${cto}
 
-CFO:
+
+==============================
+CFO
+==============================
+
 ${cfo}
 `;
 
     const devil = await askAgent(
       "Devil's Advocate / Red Team",
+
       `
-Try to destroy this business idea.
+Your job is to try to DESTROY this business idea.
+
+Do not be polite.
 
 Look for:
-- Weak assumptions
-- Fake differentiation
-- Competition
-- Bad economics
-- Technical problems
-- Customer acquisition problems
-- Reasons customers may not care
 
-Then identify:
-1. Strongest argument against it
-2. Strongest argument for it
-3. Evidence needed to prove the idea
-4. The first experiment the founder should run
+1. Weak assumptions
+2. Fake differentiation
+3. Strong competitors
+4. Better existing alternatives
+5. Poor economics
+6. Difficult customer acquisition
+7. Technical problems
+8. Regulatory problems
+9. Operational problems
+10. Reasons customers might not care
+11. Reasons the founder could waste months building this
+
+Then answer:
+
+- What is the strongest argument AGAINST this company?
+- What is the strongest argument FOR this company?
+- Which Board members are making assumptions?
+- What evidence would prove the idea is worth pursuing?
+- What experiment should happen BEFORE significant money is invested?
 `,
-      debateContext
+      earlyBoardroom
     );
 
-    // CHAIRMAN
-    const fullBoardroom = `
-CEO:
+    // ==================================================
+    // BOARD MEMBER 6 — CHAIRMAN
+    // ==================================================
+
+    const completeBoardroom = `
+
+========================================
+CEO / STRATEGIST
+========================================
+
 ${ceo}
 
-MARKET RESEARCHER:
+
+========================================
+MARKET RESEARCHER
+========================================
+
 ${market}
 
-CTO:
+
+========================================
+CTO
+========================================
+
 ${cto}
 
-CFO:
+
+========================================
+CFO
+========================================
+
 ${cfo}
 
-DEVIL'S ADVOCATE:
+
+========================================
+DEVIL'S ADVOCATE
+========================================
+
 ${devil}
 `;
 
     const chairman = await askAgent(
       "Chairman / Final Synthesizer",
+
       `
-Analyze the entire Boardroom debate.
+You are responsible for synthesizing the entire Boardroom.
 
-Produce:
+Do NOT simply choose the argument that sounds best.
 
-1. EXECUTIVE VERDICT
-Does this idea deserve a real-world test?
+Your job is to identify what is actually known versus what is speculation.
 
-2. CORE PROBLEM
+Produce the following:
 
-3. TARGET CUSTOMER
+1. EXECUTIVE ASSESSMENT
+
+Explain whether this idea deserves a real-world validation test.
+
+2. CORE CUSTOMER PROBLEM
+
+State the problem in simple language.
+
+3. FIRST CUSTOMER
+
+Identify the specific customer segment that should be tested first.
 
 4. BUSINESS MODEL
 
+Explain exactly how the company could make money.
+
 5. DIFFERENTIATION
+
+Explain what would actually need to be different.
 
 6. BIGGEST RISKS
 
+List the five biggest reasons this could fail.
+
 7. ASSUMPTION LEDGER
+
 Separate:
-- Known
-- Believed
-- Unknown
+
+KNOWN:
+Things supported by evidence or logic.
+
+ASSUMED:
+Things we currently believe but have not proven.
+
+UNKNOWN:
+Things we need to discover.
 
 8. 30-DAY VALIDATION PLAN
 
+Give concrete actions the founder can take before building a large product.
+
 9. KILL CRITERIA
-What evidence would cause the founder to abandon or change the idea?
+
+Explain what evidence would cause the founder to abandon, change, or redesign the idea.
 
 10. REVISED BUSINESS MODEL
-If necessary, redesign the idea.
+
+If the original idea is weak, redesign it.
+
+Do not protect the original idea simply because the founder proposed it.
 
 11. FINAL ACTION
+
 Give the single most important next action.
 
-Do not simply agree with the founder.
-The goal is evidence, not encouragement.
+The Boardroom exists to find the strongest opportunity supported by evidence.
+
+It does NOT exist to make the founder feel good.
 `,
-      fullBoardroom
+      completeBoardroom
     );
 
-    return res.status(200).json({
-      success: true,
-      response: `
+    // ==================================================
+    // FINAL BOARDROOM REPORT
+    // ==================================================
+
+    const finalReport = `
 # AI BOARDROOM ANALYSIS
 
-## CEO / STRATEGIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## 👔 CEO / STRATEGIST
 
 ${ceo}
 
----
 
-## MARKET RESEARCHER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## 📊 MARKET RESEARCHER
 
 ${market}
 
----
 
-## CTO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## ⚙️ CTO / TECHNOLOGY
 
 ${cto}
 
----
 
-## CFO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## 💰 CFO / FINANCIAL ANALYSIS
 
 ${cfo}
 
----
 
-## DEVIL'S ADVOCATE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+## ⚔️ DEVIL'S ADVOCATE
 
 ${devil}
 
----
 
-# CHAIRMAN'S FINAL SYNTHESIS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# ♦️ CHAIRMAN'S FINAL SYNTHESIS
 
 ${chairman}
-`
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+# END OF BOARDROOM
+`;
+
+    return res.status(200).json({
+      success: true,
+      response: finalReport
     });
 
   } catch (error) {
     return res.status(500).json({
-      error: error.message || "Boardroom error."
+      error:
+        error?.message ||
+        "The AI Boardroom encountered an unexpected error."
     });
   }
 }
