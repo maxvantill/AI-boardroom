@@ -324,7 +324,7 @@ async function startBoardroom() {
       throw new Error(data.error || "Something went wrong.");
     }
 
-    alert(data.response);
+   alert(data.agents.chairman);
   } catch (error) {
     alert("Boardroom error: " + error.message);
   } finally {
